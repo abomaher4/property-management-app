@@ -1,7 +1,6 @@
-from .db_utils import get_db, init_db
-from .models import Owner
+from database.db_utils import get_db  # عدّل المسار حسب مشروعك
+from database.models import Owner
 
-# إضافة مالك جديد
 def add_owner(name, contact_info='', ownership_percentage=100.0):
     db_gen = get_db()
     db = next(db_gen)
@@ -20,7 +19,6 @@ def add_owner(name, contact_info='', ownership_percentage=100.0):
     finally:
         db_gen.close()
 
-# عرض جميع الملاك
 def list_owners():
     db_gen = get_db()
     db = next(db_gen)

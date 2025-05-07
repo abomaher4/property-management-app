@@ -14,7 +14,19 @@ class AuditAPIHandler(QObject):
         try:
             resp = requests.get("http://127.0.0.1:8000/auditlog/", headers=headers)
             if resp.status_code == 200:
-                self.auditLogFetched.emit(resp.json())
+                raw = resp.json()
+                processed = []
+                for a in raw:
+                    processed.append({
+                        "id": a.get("id", ""),
+                        "user": a.get("user", ""),
+                        "action": a.get("action", ""),
+                        "table_name": a.get("table_name", ""),
+                        "row_id": a.get("row_id", ""),
+                        "timestamp": a.get("timestamp", ""),
+                        "details": a.get("details", "")
+                    })
+                self.auditLogFetched.emit(processed)
             else:
                 print("فشل في جلب سجل العمليات:", resp.text)
                 self.auditLogFetched.emit([])

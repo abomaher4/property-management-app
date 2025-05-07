@@ -1,16 +1,27 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
+import "../components"
 
-ApplicationWindow {
+Page {
     visible: true
-    width: 800
-    height: 520
+    width: 950
+    height: 600
     title: qsTr("الملاك")
 
-    property int editingOwnerId: -1  // معرف المالك قيد التعديل، -1 تعني إضافة جديد
+    Sidebar {
+        id: nav
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+    }
+
+    property int editingOwnerId: -1
 
     Rectangle {
-        anchors.fill: parent
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.left: nav.right
+        anchors.right: parent.right
         color: "#f6f7fb"
 
         Column {
@@ -18,7 +29,6 @@ ApplicationWindow {
             spacing: 18
             width: 720
 
-            // ====== فورم إدخال أو تعديل مالك ======
             Rectangle {
                 width: parent.width; height: 110
                 radius: 10; color: "#eceff1"; border.color: "#c1c4cd"
@@ -71,7 +81,6 @@ ApplicationWindow {
                 horizontalAlignment: Text.AlignHCenter
             }
 
-            // ====== جدول عرض الملاك ======
             ListView {
                 id: ownersList
                 width: parent.width
@@ -87,7 +96,6 @@ ApplicationWindow {
                         Text { text: name; width: 150 }
                         Text { text: contact_info; width: 170 }
                         Text { text: ownership_percentage + " %" ; width: 70 }
-
                         Button {
                             text: "تعديل"
                             onClicked: {
@@ -97,7 +105,6 @@ ApplicationWindow {
                                 ownerPercent.text = ownership_percentage
                             }
                         }
-
                         Button {
                             text: "حذف"
                             onClicked: {
@@ -114,26 +121,28 @@ ApplicationWindow {
                 width: 150
             }
         }
-    }
 
-    ListModel { id: ownersModel }
+        ListModel { id: ownersModel }
 
-    Component.onCompleted: ownersApiHandler.fetchOwners()
+        Component.onCompleted: ownersApiHandler.fetchOwners()
 
-    Connections {
-        target: ownersApiHandler
-        function onOwnersFetched(list) {
-            ownersModel.clear()
-            for (var i = 0; i < list.length; ++i)
-                ownersModel.append(list[i])
-            errorMessage.text = ""
-        }
-        function onOperationSuccess(msg) {
-            ownersApiHandler.fetchOwners()
-            errorMessage.text = ""
-        }
-        function onOperationFailed(msg) {
-            errorMessage.text = msg
+        Connections {
+            target: ownersApiHandler
+            function onOwnersFetched(list) {
+                ownersModel.clear()
+                for (var i = 0; i < list.length; ++i)
+                    ownersModel.append(list[i])
+                errorMessage.text = ""
+            }
+
+            function onOperationSuccess(msg) {
+                ownersApiHandler.fetchOwners()
+                errorMessage.text = ""
+            }
+
+            function onOperationFailed(msg) {
+                errorMessage.text = msg
+            }
         }
     }
 }

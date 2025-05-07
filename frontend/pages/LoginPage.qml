@@ -1,20 +1,20 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
 
-ApplicationWindow {
+Page {
     visible: true
-    width: 400
-    height: 300
+    width: 500
+    height: 340
     title: qsTr("تسجيل الدخول")
 
     Rectangle {
-        width: 360; height: 250; color: "#f6f7fb"
+        width: 340; height: 230; color: "#fff"
         anchors.centerIn: parent
         radius: 15; border.color: "#cfd8dc"
 
         Column {
             anchors.centerIn: parent
-            spacing: 22
+            spacing: 20
 
             Text {
                 text: "تسجيل الدخول"
@@ -27,21 +27,22 @@ ApplicationWindow {
             TextField {
                 id: usernameField
                 placeholderText: "اسم المستخدم"
-                width: 250
+                width: 220
             }
+
             TextField {
                 id: passwordField
                 placeholderText: "كلمة المرور"
                 echoMode: TextInput.Password
-                width: 250
+                width: 220
             }
+
             Button {
                 text: "دخول"
-                width: 110
-                onClicked: {
-                    loginApiHandler.login(usernameField.text, passwordField.text)
-                }
+                width: 100
+                onClicked: loginApiHandler.login(usernameField.text, passwordField.text)
             }
+
             Text {
                 id: errorMessage
                 color: "red"

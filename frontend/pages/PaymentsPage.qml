@@ -1,14 +1,25 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
+import "../components"
 
-ApplicationWindow {
+Page {
     visible: true
-    width: 700
-    height: 430
+    width: 950
+    height: 600
     title: "الدفعات"
 
+    Sidebar {
+        id: nav
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+    }
+
     Rectangle {
-        anchors.fill: parent
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.left: nav.right
+        anchors.right: parent.right
         color: "#f6f7fb"
 
         Column {
@@ -50,18 +61,18 @@ ApplicationWindow {
                 width: 140
             }
         }
-    }
 
-    ListModel { id: paymentsModel }
+        ListModel { id: paymentsModel }
 
-    Component.onCompleted: paymentsApiHandler.fetchPayments()
+        Component.onCompleted: paymentsApiHandler.fetchPayments()
 
-    Connections {
-        target: paymentsApiHandler
-        function onPaymentsFetched(list) {
-            paymentsModel.clear()
-            for (var i = 0; i < list.length; ++i)
-                paymentsModel.append(list[i])
+        Connections {
+            target: paymentsApiHandler
+            function onPaymentsFetched(list) {
+                paymentsModel.clear()
+                for (var i = 0; i < list.length; ++i)
+                    paymentsModel.append(list[i])
+            }
         }
     }
 }

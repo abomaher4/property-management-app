@@ -14,7 +14,19 @@ class AttachmentsAPIHandler(QObject):
         try:
             resp = requests.get("http://127.0.0.1:8000/attachments/", headers=headers)
             if resp.status_code == 200:
-                self.attachmentsFetched.emit(resp.json())
+                raw = resp.json()
+                processed = []
+                for a in raw:
+                    processed.append({
+                        "id": a.get("id", ""),
+                        "unit_id": a.get("unit_id", ""),
+                        "tenant_id": a.get("tenant_id", ""),
+                        "contract_id": a.get("contract_id", ""),
+                        "filepath": a.get("filepath", ""),
+                        "filetype": a.get("filetype", ""),
+                        "uploaded_at": a.get("uploaded_at", "")
+                    })
+                self.attachmentsFetched.emit(processed)
             else:
                 print("فشل في جلب المرفقات:", resp.text)
                 self.attachmentsFetched.emit([])

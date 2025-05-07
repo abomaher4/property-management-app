@@ -4,7 +4,7 @@ from jose import JWTError, jwt
 
 SECRET_KEY = "supersecretjwtkey"  # غيّره لأقوى في الإنتاج
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
+ACCESS_TOKEN_EXPIRE_MINUTES = 24 * 60   # 24 ساعة = 1440 دقيقة
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 

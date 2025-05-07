@@ -15,7 +15,15 @@ class DashboardAPIHandler(QObject):
             resp = requests.get("http://127.0.0.1:8000/owners/", headers=headers)
             if resp.status_code == 200:
                 data = resp.json()
-                self.ownersFetched.emit(data)
+                processed = []
+                for o in data:
+                    processed.append({
+                        "id": o.get("id", ""),
+                        "name": o.get("name", ""),
+                        "contact_info": o.get("contact_info", ""),
+                        "ownership_percentage": o.get("ownership_percentage", "")
+                    })
+                self.ownersFetched.emit(processed)
             else:
                 print("فشل في جلب الملاك:", resp.text)
                 self.ownersFetched.emit([])

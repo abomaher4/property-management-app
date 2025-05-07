@@ -1,14 +1,25 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
+import "../components"
 
-ApplicationWindow {
+Page {
     visible: true
-    width: 780
-    height: 430
+    width: 950
+    height: 600
     title: "العقود"
 
+    Sidebar {
+        id: nav
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+    }
+
     Rectangle {
-        anchors.fill: parent
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.left: nav.right
+        anchors.right: parent.right
         color: "#f6f7fb"
 
         Column {
@@ -51,18 +62,18 @@ ApplicationWindow {
                 width: 140
             }
         }
-    }
 
-    ListModel { id: contractsModel }
+        ListModel { id: contractsModel }
 
-    Component.onCompleted: contractsApiHandler.fetchContracts()
+        Component.onCompleted: contractsApiHandler.fetchContracts()
 
-    Connections {
-        target: contractsApiHandler
-        function onContractsFetched(list) {
-            contractsModel.clear()
-            for (var i = 0; i < list.length; ++i)
-                contractsModel.append(list[i])
+        Connections {
+            target: contractsApiHandler
+            function onContractsFetched(list) {
+                contractsModel.clear()
+                for (var i = 0; i < list.length; ++i)
+                    contractsModel.append(list[i])
+            }
         }
     }
 }

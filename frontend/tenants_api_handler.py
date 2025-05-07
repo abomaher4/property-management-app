@@ -14,7 +14,20 @@ class TenantsAPIHandler(QObject):
         try:
             resp = requests.get("http://127.0.0.1:8000/tenants/", headers=headers)
             if resp.status_code == 200:
-                self.tenantsFetched.emit(resp.json())
+                data = resp.json()
+                processed = []
+                for t in data:
+                    processed.append({
+                        "id": t.get("id", ""),
+                        "name": t.get("name", ""),
+                        "national_id": t.get("national_id", ""),
+                        "phone": t.get("phone", ""),
+                        "email": t.get("email", ""),
+                        "nationality": t.get("nationality", ""),
+                        "contract_id": t.get("contract_id", ""),
+                        "unit_id": t.get("unit_id", "")
+                    })
+                self.tenantsFetched.emit(processed)
             else:
                 print("فشل في جلب المستأجرين:", resp.text)
                 self.tenantsFetched.emit([])

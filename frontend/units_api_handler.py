@@ -2,6 +2,7 @@ from PySide6.QtCore import QObject, Signal, Slot
 import requests
 
 class UnitsAPIHandler(QObject):
+
     unitsFetched = Signal(list)
     operationSuccess = Signal(str)
     operationFailed = Signal(str)
@@ -16,7 +17,20 @@ class UnitsAPIHandler(QObject):
         try:
             resp = requests.get("http://127.0.0.1:8000/units/", headers=headers)
             if resp.status_code == 200:
-                self.unitsFetched.emit(resp.json())
+                data = resp.json()
+                processed = []
+                for u in data:
+                    processed.append({
+                        "id": u.get("id", ""),
+                        "unit_number": u.get("unit_number", ""),
+                        "unit_type": u.get("unit_type", ""),
+                        "rooms": u.get("rooms", ""),
+                        "area": u.get("area", ""),
+                        "location": u.get("location", ""),
+                        "status": u.get("status", ""),
+                        "owner_id": u.get("owner_id", "")
+                    })
+                self.unitsFetched.emit(processed)
             else:
                 self.unitsFetched.emit([])
                 self.operationFailed.emit("فشل في جلب البيانات")

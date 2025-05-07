@@ -1,14 +1,25 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
+import "../components"
 
-ApplicationWindow {
+Page {
     visible: true
-    width: 700
-    height: 430
+    width: 950
+    height: 600
     title: "المستخدمون"
 
+    Sidebar {
+        id: nav
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+    }
+
     Rectangle {
-        anchors.fill: parent
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.left: nav.right
+        anchors.right: parent.right
         color: "#f6f7fb"
 
         Column {
@@ -48,18 +59,18 @@ ApplicationWindow {
                 width: 140
             }
         }
-    }
 
-    ListModel { id: usersModel }
+        ListModel { id: usersModel }
 
-    Component.onCompleted: usersApiHandler.fetchUsers()
+        Component.onCompleted: usersApiHandler.fetchUsers()
 
-    Connections {
-        target: usersApiHandler
-        function onUsersFetched(list) {
-            usersModel.clear()
-            for (var i = 0; i < list.length; ++i)
-                usersModel.append(list[i])
+        Connections {
+            target: usersApiHandler
+            function onUsersFetched(list) {
+                usersModel.clear()
+                for (var i = 0; i < list.length; ++i)
+                    usersModel.append(list[i])
+            }
         }
     }
 }

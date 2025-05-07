@@ -2,6 +2,7 @@ from PySide6.QtCore import QObject, Signal, Slot
 import requests
 
 class OwnersAPIHandler(QObject):
+
     ownersFetched = Signal(list)
     operationSuccess = Signal(str)
     operationFailed = Signal(str)
@@ -16,7 +17,16 @@ class OwnersAPIHandler(QObject):
         try:
             resp = requests.get("http://127.0.0.1:8000/owners/", headers=headers)
             if resp.status_code == 200:
-                self.ownersFetched.emit(resp.json())
+                data = resp.json()
+                processed = []
+                for o in data:
+                    processed.append({
+                        "id": o.get("id", ""),
+                        "name": o.get("name", ""),
+                        "contact_info": o.get("contact_info", ""),
+                        "ownership_percentage": o.get("ownership_percentage", "")
+                    })
+                self.ownersFetched.emit(processed)
             else:
                 self.ownersFetched.emit([])
                 self.operationFailed.emit("فشل في جلب البيانات")

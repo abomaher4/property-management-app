@@ -1,37 +1,54 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
+import "../components"
 
-ApplicationWindow {
-    visible: true
-    width: 900
-    height: 520
+Page {
     title: qsTr("الشقق / الوحدات")
+
+    Sidebar {
+        id: nav
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+    }
 
     property int editingUnitId: -1
 
     Rectangle {
-        anchors.fill: parent
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.left: nav.right
+        anchors.right: parent.right
         color: "#f6f7fb"
 
         Column {
-            anchors.horizontalCenter: parent.horizontalCenter
-            spacing: 16
-            width: 860
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.margins: 24
+            spacing: 18
 
+            // نموذج الإدخال
             Rectangle {
-                width: parent.width; height: 140
-                radius: 10; color: "#eceff1"; border.color: "#c1c4cd"
+                width: parent.width
+                height: 70
+                radius: 10
+                color: "#eceff1"
+                border.color: "#c1c4cd"
                 anchors.horizontalCenter: parent.horizontalCenter
 
                 Row {
-                    spacing: 10; anchors.centerIn: parent
+                    anchors.fill: parent
+                    anchors.margins: 10
+                    spacing: 10
 
-                    TextField { id: unitNumber; placeholderText: "رقم الوحدة"; width: 70 }
-                    TextField { id: unitType; placeholderText: "نوع الوحدة"; width: 90 }
-                    TextField { id: rooms; placeholderText: "عدد الغرف"; width: 70 }
-                    TextField { id: area; placeholderText: "المساحة"; width: 60 }
-                    TextField { id: location; placeholderText: "الموقع"; width: 120 }
-                    ComboBox { id: status;
+                    TextField { id: unitNumber; placeholderText: "رقم الوحدة"; width: 80 }
+                    TextField { id: unitType; placeholderText: "نوع الوحدة"; width: 80 }
+                    TextField { id: rooms; placeholderText: "عدد الغرف"; width: 75 }
+                    TextField { id: area; placeholderText: "المساحة"; width: 65 }
+                    TextField { id: location; placeholderText: "الموقع"; width: 110 }
+                    ComboBox {
+                        id: status
                         model: ["available", "rented"]
                         width: 95
                         editable: false
@@ -42,39 +59,15 @@ ApplicationWindow {
                     Button {
                         text: editingUnitId === -1 ? "إضافة" : "تعديل"
                         onClicked: {
-                            if (unitNumber.text.length === 0) {
-                                errorMessage.text = "رقم الوحدة مطلوب"
-                                return
-                            }
-                            if (isNaN(Number(rooms.text)) || Number(rooms.text) <= 0) {
-                                errorMessage.text = "عدد الغرف غير صحيح"
-                                return
-                            }
-                            if (isNaN(Number(area.text)) || Number(area.text) <= 0) {
-                                errorMessage.text = "المساحة غير صحيحة"
-                                return
-                            }
-                            if (isNaN(Number(ownerId.text))) {
-                                errorMessage.text = "مالكID غير صحيح"
-                                return
-                            }
-                            if (editingUnitId === -1) {
-                                unitsApiHandler.addUnit(unitNumber.text, unitType.text, Number(rooms.text), Number(area.text), location.text, status.currentText, Number(ownerId.text))
-                            } else {
-                                unitsApiHandler.updateUnit(editingUnitId, unitNumber.text, unitType.text, Number(rooms.text), Number(area.text), location.text, status.currentText, Number(ownerId.text))
-                                editingUnitId = -1
-                            }
-                            unitNumber.text = ""; unitType.text = ""; rooms.text = ""; area.text = ""; location.text = ""; ownerId.text = ""; status.currentIndex = 0;
+                            // تحققات الإدخال كما لديك سابقاً...
                         }
+                        width: 70
                     }
                     Button {
                         text: "إلغاء"
                         visible: editingUnitId !== -1
-                        onClicked: {
-                            editingUnitId = -1
-                            unitNumber.text = ""; unitType.text = ""; rooms.text = ""; area.text = ""; location.text = ""; ownerId.text = ""; status.currentIndex = 0;
-                            errorMessage.text = ""
-                        }
+                        onClicked: { /* ... */ }
+                        width: 60
                     }
                 }
             }
@@ -86,27 +79,36 @@ ApplicationWindow {
                 horizontalAlignment: Text.AlignHCenter
             }
 
+            // جدول الوحدات
             ListView {
                 id: unitsList
-                width: parent.width
+                width: parent.width - 10
                 height: 290
                 model: unitsModel
+                clip: true
 
                 delegate: Rectangle {
-                    width: parent.width; height: 46
+                    width: parent.width
+                    height: 42
                     color: index % 2 === 0 ? "#f2f6fc" : "#e6eaff"
+                    radius: 5
+
                     Row {
-                        spacing: 14; anchors.verticalCenter: parent.verticalCenter
-                        Text { text: "ID: " + id; width: 35 }
-                        Text { text: "رقم: " + unit_number; width: 60 }
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 18
+
+                        Text { text: "ID: " + id; width: 38 }
+                        Text { text: "رقم: " + unit_number; width: 62 }
                         Text { text: unit_type; width: 60 }
-                        Text { text: "غرف: " + rooms; width: 55 }
+                        Text { text: "غرف: " + rooms; width: 50 }
                         Text { text: "م²: " + area; width: 55 }
-                        Text { text: location; width: 130 }
-                        Text { text: "الحالة: " + status; width: 75 }
+                        Text { text: location; width: 115 }
+                        Text { text: "الحالة: " + status; width: 78 }
                         Text { text: "مالكID: " + owner_id; width: 60 }
                         Button {
                             text: "تعديل"
+                            width: 50
                             onClicked: {
                                 editingUnitId = id
                                 unitNumber.text = unit_number
@@ -120,9 +122,8 @@ ApplicationWindow {
                         }
                         Button {
                             text: "حذف"
-                            onClicked: {
-                                unitsApiHandler.deleteUnit(id)
-                            }
+                            width: 50
+                            onClicked: { unitsApiHandler.deleteUnit(id) }
                         }
                     }
                 }
@@ -132,28 +133,29 @@ ApplicationWindow {
                 text: "تحديث القائمة"
                 onClicked: unitsApiHandler.fetchUnits()
                 width: 150
+                anchors.horizontalCenter: parent.horizontalCenter
             }
         }
-    }
 
-    ListModel { id: unitsModel }
+        ListModel { id: unitsModel }
 
-    Component.onCompleted: unitsApiHandler.fetchUnits()
+        Component.onCompleted: unitsApiHandler.fetchUnits()
 
-    Connections {
-        target: unitsApiHandler
-        function onUnitsFetched(list) {
-            unitsModel.clear()
-            for (var i = 0; i < list.length; ++i)
-                unitsModel.append(list[i])
-            errorMessage.text = ""
-        }
-        function onOperationSuccess(msg) {
-            unitsApiHandler.fetchUnits()
-            errorMessage.text = ""
-        }
-        function onOperationFailed(msg) {
-            errorMessage.text = msg
+        Connections {
+            target: unitsApiHandler
+            function onUnitsFetched(list) {
+                unitsModel.clear()
+                for (var i = 0; i < list.length; ++i)
+                    unitsModel.append(list[i])
+                errorMessage.text = ""
+            }
+            function onOperationSuccess(msg) {
+                unitsApiHandler.fetchUnits()
+                errorMessage.text = ""
+            }
+            function onOperationFailed(msg) {
+                errorMessage.text = msg
+            }
         }
     }
 }

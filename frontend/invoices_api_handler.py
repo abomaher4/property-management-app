@@ -14,7 +14,18 @@ class InvoicesAPIHandler(QObject):
         try:
             resp = requests.get("http://127.0.0.1:8000/invoices/", headers=headers)
             if resp.status_code == 200:
-                self.invoicesFetched.emit(resp.json())
+                raw = resp.json()
+                processed = []
+                for i in raw:
+                    processed.append({
+                        "id": i.get("id", ""),
+                        "contract_id": i.get("contract_id", ""),
+                        "date_issued": i.get("date_issued", ""),
+                        "amount": i.get("amount", ""),
+                        "status": i.get("status", ""),
+                        "sent_to_email": i.get("sent_to_email", "")
+                    })
+                self.invoicesFetched.emit(processed)
             else:
                 print("فشل في جلب الفواتير:", resp.text)
                 self.invoicesFetched.emit([])
