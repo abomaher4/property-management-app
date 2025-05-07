@@ -5,7 +5,7 @@ ApplicationWindow {
     visible: true
     width: 700
     height: 430
-    title: "المستأجرون"
+    title: "المستخدمون"
 
     Rectangle {
         anchors.fill: parent
@@ -16,17 +16,17 @@ ApplicationWindow {
             spacing: 24
 
             Text {
-                text: "قائمة المستأجرين"
+                text: "قائمة المستخدمين"
                 font.pointSize: 24
                 font.bold: true
                 color: "#2c387e"
             }
 
             ListView {
-                id: tenantsList
-                width: 600
+                id: usersList
+                width: 650
                 height: 220
-                model: tenantsModel
+                model: usersModel
 
                 delegate: Rectangle {
                     width: parent.width; height: 48
@@ -34,33 +34,32 @@ ApplicationWindow {
                     Row {
                         spacing: 15; anchors.verticalCenter: parent.verticalCenter
                         Text { text: "ID: " + id; width: 40 }
-                        Text { text: name; width: 120 }
-                        Text { text: national_id; width: 90 }
-                        Text { text: phone; width: 90 }
-                        Text { text: email; width: 130 }
-                        Text { text: nationality; width: 70 }
+                        Text { text: username; width: 140 }
+                        Text { text: role; width: 80 }
+                        Text { text: is_active ? "نشط" : "موقوف"; width: 60 }
+                        Text { text: last_login ? "آخر دخول: " + last_login : ""; width: 170 }
                     }
                 }
             }
 
             Button {
                 text: "تحديث القائمة"
-                onClicked: tenantsApiHandler.fetchTenants()
+                onClicked: usersApiHandler.fetchUsers()
                 width: 140
             }
         }
     }
 
-    ListModel { id: tenantsModel }
+    ListModel { id: usersModel }
 
-    Component.onCompleted: tenantsApiHandler.fetchTenants()
+    Component.onCompleted: usersApiHandler.fetchUsers()
 
     Connections {
-        target: tenantsApiHandler
-        function onTenantsFetched(list) {
-            tenantsModel.clear()
+        target: usersApiHandler
+        function onUsersFetched(list) {
+            usersModel.clear()
             for (var i = 0; i < list.length; ++i)
-                tenantsModel.append(list[i])
+                usersModel.append(list[i])
         }
     }
 }
