@@ -46,8 +46,19 @@ def require_role(required_roles: List[str]):
 
 class OwnerCreate(BaseModel):
     name: constr(min_length=3, max_length=100)
-    contact_info: Optional[str] = ""
+    owner_type: constr(min_length=2, max_length=32)
+    id_number: constr(min_length=3, max_length=32)
+    nationality: constr(min_length=2, max_length=32)
+    main_phone: constr(min_length=7, max_length=32)
     ownership_percentage: float = 100.0
+    secondary_phone: Optional[str] = None
+    email: Optional[str] = None
+    address: Optional[str] = None
+    iban: Optional[str] = None
+    birth_date: Optional[date] = None
+    notes: Optional[str] = None
+    status: Optional[str] = "active"
+    agent_name: Optional[str] = None
 
     @validator('ownership_percentage')
     def valid_percentage(cls, v):
@@ -55,7 +66,11 @@ class OwnerCreate(BaseModel):
             raise ValueError('نسبة التملك يجب أن تكون بين 1 و 100')
         return v
 
+
 class OwnerRead(OwnerCreate):
+    id: int
+    class Config:
+        orm_mode = True
     id: int
     class Config:
         orm_mode = True
@@ -231,6 +246,7 @@ def create_owner(owner: OwnerCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(obj)
     return obj
+
 
 @app.get("/owners/", response_model=List[OwnerRead], dependencies=[Depends(get_current_user)])
 def list_owners(db: Session = Depends(get_db)):

@@ -23,7 +23,8 @@ class UsersAPIHandler(QObject):
                         "username": u.get("username", ""),
                         "role": u.get("role", ""),
                         "is_active": u.get("is_active", ""),
-                        "last_login": u.get("last_login", "")
+                        # معالجة last_login ليكون نص دائماً حتى لو كان None
+                        "last_login": str(u.get("last_login")) if u.get("last_login") else ""
                     })
                 self.usersFetched.emit(processed)
             else:

@@ -1,6 +1,8 @@
 import sys
 import os
+
 os.environ["QT_QUICK_CONTROLS_STYLE"] = "Basic"
+
 from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtCore import QObject, Slot
@@ -29,7 +31,6 @@ class AppController(QObject):
         self.login_api_handler.loginSuccess.connect(self.on_login_success)
         self.login_api_handler.loginFailed.connect(self.on_login_failed)
         self.engine.rootContext().setContextProperty("loginApiHandler", self.login_api_handler)
-
         self.engine.rootContext().setContextProperty("mainApiHandler", self)
 
         # الصفحة الافتراضية هي تسجيل الدخول
@@ -53,6 +54,7 @@ class AppController(QObject):
     def gotoOwners(self):
         self.owners_api_handler = OwnersAPIHandler(self.access_token)
         self.engine.rootContext().setContextProperty("ownersApiHandler", self.owners_api_handler)
+        print("DEBUG: ownersApiHandler attached to QML context:", self.owners_api_handler)
         self.set_page("OwnersPage.qml")
 
     @Slot()
@@ -134,6 +136,7 @@ class AppController(QObject):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     engine = QQmlApplicationEngine()
+    # تحميل الصفحة الرئيسية
     engine.load(os.path.join(os.path.dirname(__file__), "frontend/main.qml"))
     controller = AppController(engine)
     sys.exit(app.exec())

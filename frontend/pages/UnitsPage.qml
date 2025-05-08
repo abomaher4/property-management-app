@@ -14,6 +14,9 @@ Page {
 
     property int editingUnitId: -1
 
+    ListModel { id: ownersModel }
+    ListModel { id: unitsModel }
+
     Rectangle {
         anchors.top: parent.top
         anchors.bottom: parent.bottom
@@ -54,32 +57,73 @@ Page {
                         editable: false
                         currentIndex: 0
                     }
-                    TextField { id: ownerId; placeholderText: "مالكID"; width: 65 }
+                    ComboBox {
+                        id: ownerCombo
+                        width: 130
+                        model: ownersModel
+                        textRole: "name"
+                        valueRole: "id"
+                    }
 
                     Button {
                         text: editingUnitId === -1 ? "إضافة" : "تعديل"
-                        onClicked: {
-                            // تحققات الإدخال كما لديك سابقاً...
-                        }
                         width: 70
+                        onClicked: {
+                            errorMessage.text = ""
+                            if (unitNumber.text.length === 0) {
+                                errorMessage.text = "رقم الوحدة مطلوب"
+                                return
+                            }
+                            if (rooms.text.length === 0 || isNaN(Number(rooms.text)) || Number(rooms.text) <= 0) {
+                                errorMessage.text = "عدد الغرف غير صحيح"
+                                return
+                            }
+                            if (area.text.length === 0 || isNaN(Number(area.text)) || Number(area.text) <= 0) {
+                                errorMessage.text = "المساحة غير صحيحة"
+                                return
+                            }
+                            if (ownerCombo.currentIndex === -1) {
+                                errorMessage.text = "يرجى اختيار مالك من القائمة"
+                                return
+                            }
+                            var ownerId = ownersModel.get(ownerCombo.currentIndex).id;
+                            if (editingUnitId === -1) {
+                                unitsApiHandler.addUnit(
+                                    unitNumber.text, unitType.text, Number(rooms.text),
+                                    Number(area.text), location.text, status.currentText, ownerId
+                                )
+                            } else {
+                                unitsApiHandler.updateUnit(
+                                    editingUnitId, unitNumber.text, unitType.text, Number(rooms.text),
+                                    Number(area.text), location.text, status.currentText, ownerId
+                                )
+                                editingUnitId = -1
+                            }
+                            unitNumber.text = ""; unitType.text = ""; rooms.text = ""; area.text = "";
+                            location.text = ""; ownerCombo.currentIndex = -1; status.currentIndex = 0;
+                        }
                     }
                     Button {
                         text: "إلغاء"
-                        visible: editingUnitId !== -1
-                        onClicked: { /* ... */ }
                         width: 60
+                        visible: editingUnitId !== -1
+                        onClicked: {
+                            editingUnitId = -1
+                            unitNumber.text = ""; unitType.text = ""; rooms.text = ""; area.text = "";
+                            location.text = ""; ownerCombo.currentIndex = -1; status.currentIndex = 0;
+                            errorMessage.text = ""
+                        }
                     }
                 }
             }
 
             Text {
                 id: errorMessage
-                color: "red"
+                color: errorMessage.text === "تمت العملية بنجاح" ? "green" : "red"
                 font.pixelSize: 16
                 horizontalAlignment: Text.AlignHCenter
             }
 
-            // جدول الوحدات
             ListView {
                 id: unitsList
                 width: parent.width - 10
@@ -88,7 +132,7 @@ Page {
                 clip: true
 
                 delegate: Rectangle {
-                    width: parent.width
+                    width: ListView.view ? ListView.view.width : 200
                     height: 42
                     color: index % 2 === 0 ? "#f2f6fc" : "#e6eaff"
                     radius: 5
@@ -105,7 +149,7 @@ Page {
                         Text { text: "م²: " + area; width: 55 }
                         Text { text: location; width: 115 }
                         Text { text: "الحالة: " + status; width: 78 }
-                        Text { text: "مالكID: " + owner_id; width: 60 }
+                        Text { text: "المالك: " + owner_name; width: 90 }
                         Button {
                             text: "تعديل"
                             width: 50
@@ -117,13 +161,21 @@ Page {
                                 area.text = area
                                 location.text = location
                                 status.currentIndex = status === "rented" ? 1 : 0
-                                ownerId.text = owner_id
+                                for (var i = 0; i < ownersModel.count; i++) {
+                                    if (ownersModel.get(i).id === owner_id) {
+                                        ownerCombo.currentIndex = i
+                                        break
+                                    }
+                                }
+                                errorMessage.text = ""
                             }
                         }
                         Button {
                             text: "حذف"
                             width: 50
-                            onClicked: { unitsApiHandler.deleteUnit(id) }
+                            onClicked: {
+                                unitsApiHandler.deleteUnit(id)
+                            }
                         }
                     }
                 }
@@ -131,15 +183,19 @@ Page {
 
             Button {
                 text: "تحديث القائمة"
-                onClicked: unitsApiHandler.fetchUnits()
+                onClicked: {
+                    unitsApiHandler.fetchUnits()
+                    ownersApiHandler.fetchOwners()
+                }
                 width: 150
                 anchors.horizontalCenter: parent.horizontalCenter
             }
         }
 
-        ListModel { id: unitsModel }
-
-        Component.onCompleted: unitsApiHandler.fetchUnits()
+        Component.onCompleted: {
+            unitsApiHandler.fetchUnits()
+            ownersApiHandler.fetchOwners()
+        }
 
         Connections {
             target: unitsApiHandler
@@ -147,14 +203,21 @@ Page {
                 unitsModel.clear()
                 for (var i = 0; i < list.length; ++i)
                     unitsModel.append(list[i])
-                errorMessage.text = ""
             }
             function onOperationSuccess(msg) {
                 unitsApiHandler.fetchUnits()
-                errorMessage.text = ""
+                errorMessage.text = "تمت العملية بنجاح"
             }
             function onOperationFailed(msg) {
                 errorMessage.text = msg
+            }
+        }
+        Connections {
+            target: ownersApiHandler
+            function onOwnersFetched(list) {
+                ownersModel.clear()
+                for (var i = 0; i < list.length; ++i)
+                    ownersModel.append(list[i])
             }
         }
     }

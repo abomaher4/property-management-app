@@ -2,7 +2,6 @@ from PySide6.QtCore import QObject, Signal, Slot
 import requests
 
 class UnitsAPIHandler(QObject):
-
     unitsFetched = Signal(list)
     operationSuccess = Signal(str)
     operationFailed = Signal(str)
@@ -28,15 +27,16 @@ class UnitsAPIHandler(QObject):
                         "area": u.get("area", ""),
                         "location": u.get("location", ""),
                         "status": u.get("status", ""),
-                        "owner_id": u.get("owner_id", "")
+                        "owner_id": u.get("owner_id", ""),
+                        "owner_name": u.get("owner_name", "")  # مهم
                     })
                 self.unitsFetched.emit(processed)
             else:
                 self.unitsFetched.emit([])
-                self.operationFailed.emit("فشل في جلب البيانات")
+                self.operationFailed.emit(f"فشل في جلب البيانات: {resp.status_code} {resp.text}")
         except Exception as e:
             self.unitsFetched.emit([])
-            self.operationFailed.emit(str(e))
+            self.operationFailed.emit(f"خطأ الاتصال: {e}")
 
     @Slot(str, str, int, float, str, str, int)
     def addUnit(self, unit_number, unit_type, rooms, area, location, status, owner_id):
@@ -55,10 +55,14 @@ class UnitsAPIHandler(QObject):
             if resp.status_code in (200, 201):
                 self.operationSuccess.emit("تمت الإضافة بنجاح")
             else:
-                msg = resp.json().get("detail", "فشل في الإضافة")
-                self.operationFailed.emit(str(msg))
+                try:
+                    # قد يرجع الرد JSON به تفصيل الخطأ
+                    msg = resp.json().get("detail", resp.text)
+                except Exception:
+                    msg = resp.text
+                self.operationFailed.emit(f"فشل في الإضافة: {msg}")
         except Exception as e:
-            self.operationFailed.emit(str(e))
+            self.operationFailed.emit(f"خطأ أثناء الإضافة: {e}")
 
     @Slot(int, str, str, int, float, str, str, int)
     def updateUnit(self, unit_id, unit_number, unit_type, rooms, area, location, status, owner_id):
@@ -77,10 +81,13 @@ class UnitsAPIHandler(QObject):
             if resp.status_code == 200:
                 self.operationSuccess.emit("تم التعديل بنجاح")
             else:
-                msg = resp.json().get("detail", "فشل في التعديل")
-                self.operationFailed.emit(str(msg))
+                try:
+                    msg = resp.json().get("detail", resp.text)
+                except Exception:
+                    msg = resp.text
+                self.operationFailed.emit(f"فشل في التعديل: {msg}")
         except Exception as e:
-            self.operationFailed.emit(str(e))
+            self.operationFailed.emit(f"خطأ أثناء التعديل: {e}")
 
     @Slot(int)
     def deleteUnit(self, unit_id):
@@ -90,7 +97,10 @@ class UnitsAPIHandler(QObject):
             if resp.status_code == 200:
                 self.operationSuccess.emit("تم الحذف بنجاح")
             else:
-                msg = resp.json().get("detail", "فشل في الحذف")
-                self.operationFailed.emit(str(msg))
+                try:
+                    msg = resp.json().get("detail", resp.text)
+                except Exception:
+                    msg = resp.text
+                self.operationFailed.emit(f"فشل في الحذف: {msg}")
         except Exception as e:
-            self.operationFailed.emit(str(e))
+            self.operationFailed.emit(f"خطأ أثناء الحذف: {e}")
