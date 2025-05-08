@@ -1,166 +1,140 @@
-from database.db_utils import get_db
-from database.models import Owner
+from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
+from database.models import Owner, Attachment, AttachmentType, AuditLog
+from datetime import datetime
+import csv, io, re
 
-def add_owner(
-    name,
-    owner_type,
-    id_number,
-    nationality,
-    main_phone,
-    ownership_percentage,
-    secondary_phone=None,
-    email=None,
-    address=None,
-    iban=None,
-    birth_date=None,
-    notes=None,
-    status="active",
-    agent_name=None
-):
-    db_gen = get_db()
-    db = next(db_gen)
-    try:
-        owner = Owner(
-            name=name,
-            owner_type=owner_type,
-            id_number=id_number,
-            nationality=nationality,
-            main_phone=main_phone,
-            ownership_percentage=ownership_percentage,
-            secondary_phone=secondary_phone,
-            email=email,
-            address=address,
-            iban=iban,
-            birth_date=birth_date,
-            notes=notes,
-            status=status,
-            agent_name=agent_name
-        )
-        db.add(owner)
-        db.commit()
-        db.refresh(owner)
-        return owner
-    except SQLAlchemyError as e:
-        db.rollback()
-        print(f"خطأ بقاعدة البيانات: {str(e)}")
-        return None
-    except Exception as e:
-        db.rollback()
-        print(f"خطأ غير متوقع: {str(e)}")
-        return None
-    finally:
-        db_gen.close()
+# 1. استثناءات مخصصة
+class OwnerNotFound(Exception): pass
+class OwnerExists(Exception): pass
+class ValidationError(Exception): pass
 
-def update_owner(
-    owner_id,
-    name,
-    owner_type,
-    id_number,
-    nationality,
-    main_phone,
-    ownership_percentage,
-    secondary_phone=None,
-    email=None,
-    address=None,
-    iban=None,
-    birth_date=None,
-    notes=None,
-    status="active",
-    agent_name=None
-):
-    db_gen = get_db()
-    db = next(db_gen)
-    try:
-        owner = db.query(Owner).get(owner_id)
-        if not owner:
-            print("المالك غير موجود!")
-            return None
-        owner.name = name
-        owner.owner_type = owner_type
-        owner.id_number = id_number
-        owner.nationality = nationality
-        owner.main_phone = main_phone
-        owner.ownership_percentage = ownership_percentage
-        owner.secondary_phone = secondary_phone
-        owner.email = email
-        owner.address = address
-        owner.iban = iban
-        owner.birth_date = birth_date
-        owner.notes = notes
-        owner.status = status
-        owner.agent_name = agent_name
-        db.commit()
-        db.refresh(owner)
-        return owner
-    except SQLAlchemyError as e:
-        db.rollback()
-        print(f"خطأ بقاعدة البيانات: {str(e)}")
-        return None
-    except Exception as e:
-        db.rollback()
-        print(f"خطأ غير متوقع: {str(e)}")
-        return None
-    finally:
-        db_gen.close()
+# 2. فاحص (Validator) للهوية السعودية (مثال عملي)
+def validate_registration_number(reg_num: str):
+    if not re.match(r'^\d{10}$', reg_num):
+        raise ValidationError("رقم الهوية يجب أن يكون 10 أرقام")
 
-def delete_owner(owner_id):
-    db_gen = get_db()
-    db = next(db_gen)
-    try:
-        owner = db.query(Owner).get(owner_id)
-        if not owner:
-            print("المالك غير موجود!")
-            return False
-        db.delete(owner)
-        db.commit()
-        return True
-    except SQLAlchemyError as e:
-        db.rollback()
-        print(f"خطأ بقاعدة البيانات: {str(e)}")
-        return False
-    except Exception as e:
-        db.rollback()
-        print(f"خطأ غير متوقع: {str(e)}")
-        return False
-    finally:
-        db_gen.close()
+# 3. إضافة مالك جديد (مع التحقق والتدقيق)
+def add_owner(db: Session, name, registration_number, nationality, iban=None, agent_name=None, notes=None):
+    validate_registration_number(registration_number)
+    if db.query(Owner).filter_by(registration_number=registration_number, is_deleted=False).first():
+        raise OwnerExists("رقم الهوية مستخدم سابقًا")
+    new_owner = Owner(
+        name=name,
+        registration_number=registration_number,
+        nationality=nationality,
+        iban=iban,
+        agent_name=agent_name,
+        notes=notes
+    )
+    db.add(new_owner)
+    db.commit()
+    db.refresh(new_owner)
+    # حدث سجل التدقيق
+    log_audit(db, user="system", action="add", table_name="owners", row_id=new_owner.id, details=f"Add: {name}")
+    return new_owner
 
-def list_owners(with_units_count=False):
-    db_gen = get_db()
-    db = next(db_gen)
-    try:
-        owners = db.query(Owner).all()
-        results = []
-        for o in owners:
-            record = {
-                "id": o.id,
-                "name": o.name,
-                "owner_type": o.owner_type,
-                "id_number": o.id_number,
-                "nationality": o.nationality,
-                "main_phone": o.main_phone,
-                "ownership_percentage": o.ownership_percentage,
-                "secondary_phone": o.secondary_phone or "",
-                "email": o.email or "",
-                "address": o.address or "",
-                "iban": o.iban or "",
-                "birth_date": o.birth_date.isoformat() if o.birth_date else "",
-                "notes": o.notes or "",
-                "status": o.status or "",
-                "agent_name": o.agent_name or ""
-            }
-            if with_units_count:
-                record["units_count"] = len(o.units)
-            results.append(record)
-        return results
-    finally:
-        db_gen.close()
+# 4. تعديل بيانات مالك
+def update_owner(db: Session, owner_id, **kwargs):
+    owner = db.query(Owner).get(owner_id)
+    if not owner or owner.is_deleted:
+        raise OwnerNotFound("المالك غير موجود")
+    if "registration_number" in kwargs:
+        validate_registration_number(kwargs["registration_number"])
+        exist = db.query(Owner).filter_by(registration_number=kwargs["registration_number"], is_deleted=False).first()
+        if exist and exist.id != owner_id:
+            raise OwnerExists("رقم الهوية مستخدم سابقًا")
+    for k, v in kwargs.items():
+        setattr(owner, k, v)
+    db.commit()
+    db.refresh(owner)
+    log_audit(db, user="system", action="update", table_name="owners", row_id=owner.id, details=f"Update: {owner.name}")
+    return owner
 
-def get_owner(owner_id):
-    db_gen = get_db()
-    db = next(db_gen)
-    try:
-        return db.query(Owner).get(owner_id)
-    finally:
-        db_gen.close()
+# 5. حذف منطقي للمالك (soft delete)
+def delete_owner(db: Session, owner_id):
+    owner = db.query(Owner).get(owner_id)
+    if not owner or owner.is_deleted:
+        raise OwnerNotFound("المالك غير موجود أو محذوف")
+    owner.is_deleted = True
+    db.commit()
+    log_audit(db, user="system", action="delete", table_name="owners", row_id=owner.id, details=f"Delete: {owner.name}")
+    return True
+
+# 6. جلب مالك واحد (مع إمكانية جلب المرفقات بأنواعها)
+def get_owner(db: Session, owner_id, attachment_type=None):
+    owner = db.query(Owner).get(owner_id)
+    if not owner or owner.is_deleted:
+        raise OwnerNotFound("المالك غير موجود")
+    attachments = []
+    if attachment_type:
+        attachments = [a for a in owner.attachments if a.attachment_type == attachment_type]
+    return owner, attachments
+
+# 7. قائمة الملاك مع Pagination وFiltering
+def list_owners(db: Session, page=1, per_page=20, filter_name=None, filter_registration_number=None, filter_nationality=None):
+    query = db.query(Owner).filter_by(is_deleted=False)
+    if filter_name:
+        query = query.filter(Owner.name.ilike(f"%{filter_name}%"))
+    if filter_registration_number:
+        query = query.filter(Owner.registration_number == filter_registration_number)
+    if filter_nationality:
+        query = query.filter(Owner.nationality.ilike(f"%{filter_nationality}%"))
+    total = query.count()
+    owners = query.order_by(Owner.id.desc()).offset((page-1)*per_page).limit(per_page).all()
+    return {
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "data": owners
+    }
+
+# 8. عمليات Attach/Detach للمرفقات
+def attach_owner_file(db: Session, owner_id, filepath, filetype, attachment_type: AttachmentType, notes=None):
+    owner = db.query(Owner).get(owner_id)
+    if not owner or owner.is_deleted:
+        raise OwnerNotFound("المالك غير موجود")
+    attachment = Attachment(
+        owner_id=owner_id,
+        filepath=filepath,
+        filetype=filetype,
+        attachment_type=attachment_type,
+        notes=notes
+    )
+    db.add(attachment)
+    db.commit()
+    db.refresh(attachment)
+    log_audit(db, user="system", action="attach", table_name="attachments", row_id=attachment.id, details=f"Attach {attachment_type} to owner {owner.name}")
+    return attachment
+
+def detach_owner_file(db: Session, attachment_id):
+    att = db.query(Attachment).get(attachment_id)
+    if not att or not att.owner_id:
+        raise OwnerNotFound("المرفق غير موجود أو غير مرتبط بمالك")
+    db.delete(att)
+    db.commit()
+    log_audit(db, user="system", action="detach", table_name="attachments", row_id=attachment_id, details="Detach from owner")
+    return True
+
+# 9. تصدير القائمة إلى CSV (Export)
+def export_owners_to_csv(db: Session):
+    owners = db.query(Owner).filter_by(is_deleted=False).all()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['id', 'name', 'registration_number', 'nationality', 'iban', 'agent_name'])
+    for o in owners:
+        writer.writerow([o.id, o.name, o.registration_number, o.nationality, o.iban or '', o.agent_name or ''])
+    return output.getvalue()
+
+# 10. Hook: سجل التدقيق (يمكنك تعديلها لتضيف التفاصيل user وغيرها)
+def log_audit(db: Session, user: str, action: str, table_name: str, row_id: int, details: str = ""):
+    log = AuditLog(
+        user=user,
+        action=action,
+        table_name=table_name,
+        row_id=row_id,
+        details=details,
+        timestamp=datetime.utcnow()
+    )
+    db.add(log)
+    db.commit()
