@@ -7,8 +7,7 @@ import enum
 
 Base = declarative_base()
 
-## ========== Enums لأول مرة في المشروع ==========
-
+# ========== Enums ==========
 class UnitStatus(enum.Enum):
     available = "available"
     rented = "rented"
@@ -34,10 +33,9 @@ class AttachmentType(enum.Enum):
     invoice = "invoice"
     general = "general"
 
-## ========== 1. Owner (الملاك) ==========
+# ========== 1. Owner ==========
 class Owner(Base):
     __tablename__ = 'owners'
-
     id = Column(Integer, primary_key=True)
     name = Column(String(128), nullable=False)
     registration_number = Column(String(32), nullable=False, unique=True, index=True)
@@ -47,16 +45,13 @@ class Owner(Base):
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
-    # حذف منطقي (اختياري)
     is_deleted = Column(Boolean, default=False)
-    # علاقات
     units = relationship('Unit', back_populates='owner')
     attachments = relationship('Attachment', back_populates='owner')
 
-## ========== 2. Unit (الشقق/الوحدات) ==========
+# ========== 2. Unit ==========
 class Unit(Base):
     __tablename__ = 'units'
-
     id = Column(Integer, primary_key=True)
     unit_number = Column(String(32), nullable=False, unique=True, index=True)
     unit_type = Column(String(32), nullable=False)
@@ -75,10 +70,9 @@ class Unit(Base):
     attachments = relationship('Attachment', back_populates='unit')
     contracts = relationship('Contract', back_populates='unit')
 
-## ========== 3. Tenant (المستأجرين) ==========
+# ========== 3. Tenant ==========
 class Tenant(Base):
     __tablename__ = 'tenants'
-
     id = Column(Integer, primary_key=True)
     name = Column(String(128), nullable=False)
     national_id = Column(String(32), nullable=False, index=True)
@@ -94,10 +88,9 @@ class Tenant(Base):
     attachments = relationship('Attachment', back_populates='tenant')
     contracts = relationship('Contract', back_populates='tenant')
 
-## ========== 4. Contract (العقود) ==========
+# ========== 4. Contract ==========
 class Contract(Base):
     __tablename__ = 'contracts'
-
     id = Column(Integer, primary_key=True)
     contract_number = Column(String(64), nullable=False, unique=True, index=True)
     unit_id = Column(Integer, ForeignKey('units.id', ondelete="SET NULL"))
@@ -107,7 +100,7 @@ class Contract(Base):
     duration_months = Column(Integer, nullable=False)
     rent_amount = Column(Float, nullable=False)
     rental_platform = Column(String(32), nullable=True)
-    payment_type = Column(String(32), nullable=True)  # شهري/ربع سنوي/سنوي
+    payment_type = Column(String(32), nullable=True) # شهري/ربع سنوي/سنوي
     status = Column(Enum(ContractStatus), nullable=False, default=ContractStatus.active)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=func.now())
@@ -119,10 +112,9 @@ class Contract(Base):
     payments = relationship('Payment', back_populates='contract')
     invoices = relationship('Invoice', back_populates='contract')
 
-## ========== 5. Payment (الدفعات) ==========
+# ========== 5. Payment ==========
 class Payment(Base):
     __tablename__ = 'payments'
-
     id = Column(Integer, primary_key=True)
     contract_id = Column(Integer, ForeignKey('contracts.id', ondelete="CASCADE"))
     due_date = Column(Date, nullable=False)
@@ -135,10 +127,9 @@ class Payment(Base):
     updated_at = Column(DateTime, onupdate=func.now())
     contract = relationship('Contract', back_populates='payments')
 
-## ========== 6. Invoice (الفواتير) ==========
+# ========== 6. Invoice ==========
 class Invoice(Base):
     __tablename__ = 'invoices'
-
     id = Column(Integer, primary_key=True)
     contract_id = Column(Integer, ForeignKey('contracts.id', ondelete="CASCADE"))
     date_issued = Column(Date, nullable=False)
@@ -151,21 +142,19 @@ class Invoice(Base):
     contract = relationship('Contract', back_populates='invoices')
     attachments = relationship('Attachment', back_populates='invoice')
 
-## ========== 7. Attachment (المرفقات) ==========
+# ========== 7. Attachment ==========
 class Attachment(Base):
     __tablename__ = 'attachments'
-
     id = Column(Integer, primary_key=True)
     filepath = Column(String(256), nullable=False)
-    filetype = Column(String(32), nullable=False)    # pdf, jpg, png, ...
+    filetype = Column(String(32), nullable=False) # pdf, jpg, png, ...
     attachment_type = Column(Enum(AttachmentType), nullable=False, default=AttachmentType.general)
     uploaded_at = Column(DateTime, default=func.now())
-    # علاقات الربط
-    owner_id    = Column(Integer, ForeignKey('owners.id', ondelete="CASCADE"), nullable=True)
-    unit_id     = Column(Integer, ForeignKey('units.id', ondelete="CASCADE"), nullable=True)
-    tenant_id   = Column(Integer, ForeignKey('tenants.id', ondelete="CASCADE"), nullable=True)
+    owner_id = Column(Integer, ForeignKey('owners.id', ondelete="CASCADE"), nullable=True)
+    unit_id = Column(Integer, ForeignKey('units.id', ondelete="CASCADE"), nullable=True)
+    tenant_id = Column(Integer, ForeignKey('tenants.id', ondelete="CASCADE"), nullable=True)
     contract_id = Column(Integer, ForeignKey('contracts.id', ondelete="CASCADE"), nullable=True)
-    invoice_id  = Column(Integer, ForeignKey('invoices.id', ondelete="CASCADE"), nullable=True)
+    invoice_id = Column(Integer, ForeignKey('invoices.id', ondelete="CASCADE"), nullable=True)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=func.now())
     owner = relationship('Owner', back_populates='attachments')
@@ -174,10 +163,9 @@ class Attachment(Base):
     contract = relationship('Contract', back_populates='attachments')
     invoice = relationship('Invoice', back_populates='attachments')
 
-## ========== 8. AuditLog (سجل التدقيق) ==========
+# ========== 8. AuditLog ==========
 class AuditLog(Base):
     __tablename__ = 'auditlog'
-
     id = Column(Integer, primary_key=True)
     user = Column(String(64), nullable=False)
     action = Column(String(64), nullable=False)
@@ -186,10 +174,9 @@ class AuditLog(Base):
     details = Column(Text, nullable=True)
     timestamp = Column(DateTime, default=func.now())
 
-## ========== 9. Users (المستخدمون) ==========
+# ========== 9. Users ==========
 class User(Base):
     __tablename__ = 'users'
-
     id = Column(Integer, primary_key=True)
     username = Column(String(32), nullable=False, unique=True, index=True)
     password_hash = Column(String(256), nullable=False)
@@ -198,3 +185,42 @@ class User(Base):
     last_login = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
+
+# ========== Schemas (Pydantic) ==========
+from typing import List, Optional
+from pydantic import BaseModel
+
+class AttachmentIn(BaseModel):
+    filename: str
+    url: str # يمكن أن يكون هو filepath أو مسار خارجي للملف
+    filetype: str
+    attachment_type: Optional[str] = "general"
+    notes: Optional[str] = None
+
+class AttachmentOut(AttachmentIn):
+    id: int
+    owner_id: Optional[int] = None
+
+class OwnerCreate(BaseModel):
+    name: str
+    registration_number: str
+    nationality: str
+    iban: Optional[str] = None
+    agent_name: Optional[str] = None
+    notes: Optional[str] = None
+    attachments: Optional[List[AttachmentIn]] = []
+
+class OwnerOut(BaseModel):
+    id: int
+    name: str
+    registration_number: str
+    nationality: str
+    iban: Optional[str]
+    agent_name: Optional[str]
+    notes: Optional[str]
+    created_at: str
+    updated_at: Optional[str]
+    attachments: List[AttachmentOut] = []
+
+    class Config:
+        orm_mode = True

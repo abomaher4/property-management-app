@@ -8,11 +8,22 @@ import csv, io
 class AttachmentNotFound(Exception): pass
 class ValidationError(Exception): pass
 
-# إضافة مرفق مخصص لأي كيان
-def add_attachment(db: Session, filepath, filetype, attachment_type: AttachmentType,
-                   owner_id=None, unit_id=None, tenant_id=None, contract_id=None, invoice_id=None, notes=None):
+# إضافة مرفق مخصص لأي كيان (مالك، وحدة، مستأجر، ...)
+def add_attachment(
+    db: Session,
+    filepath,
+    filetype,
+    attachment_type: AttachmentType,
+    owner_id=None,
+    unit_id=None,
+    tenant_id=None,
+    contract_id=None,
+    invoice_id=None,
+    notes=None
+):
     if not filepath or not filetype or not attachment_type:
         raise ValidationError("جميع الحقول الأساسية للمرفق مطلوبة")
+
     attachment = Attachment(
         filepath=filepath,
         filetype=filetype,
@@ -24,6 +35,7 @@ def add_attachment(db: Session, filepath, filetype, attachment_type: AttachmentT
         invoice_id=invoice_id,
         notes=notes
     )
+
     db.add(attachment)
     db.commit()
     db.refresh(attachment)
@@ -61,8 +73,17 @@ def get_attachment(db: Session, attachment_id):
     return attachment
 
 # قائمة المرفقات مع دعم Pagination وFiltering حسب الكيان أو النوع
-def list_attachments(db: Session, page=1, per_page=30, filter_type: AttachmentType=None,
-                     owner_id=None, unit_id=None, tenant_id=None, contract_id=None, invoice_id=None):
+def list_attachments(
+    db: Session,
+    page=1,
+    per_page=30,
+    filter_type: AttachmentType = None,
+    owner_id=None,
+    unit_id=None,
+    tenant_id=None,
+    contract_id=None,
+    invoice_id=None
+):
     query = db.query(Attachment)
     if filter_type:
         query = query.filter(Attachment.attachment_type == filter_type)
@@ -86,7 +107,7 @@ def list_attachments(db: Session, page=1, per_page=30, filter_type: AttachmentTy
     }
 
 # تصدير المرفقات إلى CSV (مفيدة للأرشفة أو الإشراف)
-def export_attachments_to_csv(db: Session, filter_type: AttachmentType=None):
+def export_attachments_to_csv(db: Session, filter_type: AttachmentType = None):
     query = db.query(Attachment)
     if filter_type:
         query = query.filter(Attachment.attachment_type == filter_type)
@@ -102,7 +123,7 @@ def export_attachments_to_csv(db: Session, filter_type: AttachmentType=None):
         ])
     return output.getvalue()
 
-# سجل تدقيق
+# سجل تدقيق (يمكنك تعديل التعريف لو لديك ملف logger موحّد)
 def log_audit(db: Session, user: str, action: str, table_name: str, row_id: int, details: str = ""):
     log = AuditLog(
         user=user,

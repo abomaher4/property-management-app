@@ -1,48 +1,76 @@
-from fastapi import FastAPI, Depends, Query, Response
+from fastapi import FastAPI, Depends, Query, Response, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 from database.db_utils import get_db, init_db
-from database.models import Owner, AttachmentType
+from database.models import Owner, Unit, Tenant, ContractStatus, InvoiceStatus, AttachmentType, UserRole
+
 from database.owners_utils import (
     add_owner, update_owner, delete_owner, get_owner, list_owners, attach_owner_file, detach_owner_file, export_owners_to_csv,
-    OwnerNotFound, OwnerExists, ValidationError
+    OwnerNotFound, OwnerExists, ValidationError, add_owner_with_attachments
 )
-from pydantic import BaseModel, constr
-from typing import List, Optional
+from database.units_utils import (
+    add_unit, update_unit, delete_unit, get_unit, list_units, attach_unit_file, detach_unit_file, export_units_to_csv,
+    UnitNotFound, UnitExists, ValidationError as UnitValidationError
+)
+from database.tenants_utils import (
+    add_tenant, update_tenant, delete_tenant, get_tenant, list_tenants, attach_tenant_file, detach_tenant_file, export_tenants_to_csv,
+    TenantNotFound, TenantExists, ValidationError as TenantValidationError
+)
+from database.contracts_utils import (
+    add_contract, update_contract, delete_contract, get_contract, list_contracts, attach_contract_file, detach_contract_file, export_contracts_to_csv,
+    ContractNotFound, ContractExists, ValidationError as ContractValidationError
+)
+from database.payments_utils import (
+    add_payment, update_payment, delete_payment, get_payment, list_payments, export_payments_to_csv,
+    PaymentNotFound, ValidationError as PaymentValidationError
+)
+from database.invoices_utils import (
+    add_invoice, update_invoice, delete_invoice, get_invoice, list_invoices, attach_invoice_file, detach_invoice_file, export_invoices_to_csv,
+    InvoiceNotFound, ValidationError as InvoiceValidationError
+)
+from database.attachments_utils import (
+    add_attachment, update_attachment, delete_attachment, get_attachment, list_attachments, export_attachments_to_csv,
+    AttachmentNotFound, ValidationError as AttachmentValidationError
+)
+from database.auditlog_utils import (
+    add_audit_log, get_audit_log, delete_audit_log, list_audit_logs, export_auditlogs_to_csv,
+    AuditLogNotFound
+)
+from database.users_utils import (
+    add_user, update_user, delete_user, get_user, list_users, export_users_to_csv,
+    UserNotFound, UserExists, ValidationError as UserValidationError
+)
 
+from typing import List, Optional
+from pydantic import BaseModel, constr, EmailStr
+from datetime import date, datetime
+
+# ========== إعداد التطبيق ==========
 app = FastAPI(
     title="Property Management API",
     description="API متكامل لإدارة الممتلكات مع تحقق وصلاحيات JWT",
     version="2.0.0"
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"]
+app.add_middleware(CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 @app.on_event("startup")
 def on_startup():
     init_db()
 
-# ========== Pydantic Schemas ==========
-
-class OwnerCreate(BaseModel):
-    name: constr(min_length=3, max_length=128)
-    registration_number: constr(min_length=10, max_length=32)
-    nationality: constr(min_length=2, max_length=32)
-    iban: Optional[str] = None
-    agent_name: Optional[str] = None
-    notes: Optional[str] = None
-
-class OwnerUpdate(BaseModel):
-    name: Optional[constr(min_length=3, max_length=128)] = None
-    registration_number: Optional[constr(min_length=10, max_length=32)] = None
-    nationality: Optional[constr(min_length=2, max_length=32)] = None
-    iban: Optional[str] = None
-    agent_name: Optional[str] = None
+# ========== Schemas Pydantic ==========
+class AttachmentIn(BaseModel):
+    filename: str
+    url: str
+    filetype: str
+    attachment_type: Optional[str] = "general"
     notes: Optional[str] = None
 
 class AttachmentInfo(BaseModel):
@@ -52,6 +80,23 @@ class AttachmentInfo(BaseModel):
     attachment_type: str
     notes: Optional[str] = None
     model_config = {"from_attributes": True}
+
+class OwnerCreate(BaseModel):
+    name: constr(min_length=3, max_length=128)
+    registration_number: constr(min_length=10, max_length=32)
+    nationality: constr(min_length=2, max_length=32)
+    iban: Optional[str] = None
+    agent_name: Optional[str] = None
+    notes: Optional[str] = None
+    attachments: Optional[List[AttachmentIn]] = []
+
+class OwnerUpdate(BaseModel):
+    name: Optional[constr(min_length=3, max_length=128)] = None
+    registration_number: Optional[constr(min_length=10, max_length=32)] = None
+    nationality: Optional[constr(min_length=2, max_length=32)] = None
+    iban: Optional[str] = None
+    agent_name: Optional[str] = None
+    notes: Optional[str] = None
 
 class OwnerOut(BaseModel):
     id: int
@@ -66,6 +111,33 @@ class OwnerOut(BaseModel):
     attachments: Optional[List[AttachmentInfo]]
     model_config = {"from_attributes": True}
 
+# ========== LOGIN ==========
+from passlib.context import CryptContext
+from database.models import User
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+def verify_password(plain_password, password_hash):
+    return pwd_context.verify(plain_password, password_hash)
+
+def get_user_by_username(db: Session, username: str):
+    return db.query(User).filter(User.username == username).first()
+
+@app.post("/api/login")
+def login(request: LoginRequest, db: Session = Depends(get_db)):
+    user = get_user_by_username(db, request.username)
+    if not user or not user.is_active:
+        return {"success": False, "message": "اسم المستخدم غير موجود أو غير نشط"}
+    if verify_password(request.password, user.password_hash):
+        # يمكنك هنا تسجيل وقت الدخول الأخير في user.last_login إذا رغبت
+        return {"success": True, "message": "تم تسجيل الدخول بنجاح"}
+    else:
+        return {"success": False, "message": "كلمة المرور غير صحيحة"}
+
 # ========== استثناءات HTTP مخصصة ==========
 @app.exception_handler(OwnerNotFound)
 def owner_not_found_handler(request, exc):
@@ -79,18 +151,19 @@ def owner_exists_handler(request, exc):
 def validation_error_handler(request, exc):
     return JSONResponse(status_code=400, content={"detail": str(exc)})
 
-# ========== Endpoints: CRUD + مرفقات + تصدير ==========
+# ========== Endpoints (CRUD + Attachments + Export) ==========
 
 @app.post("/owners/", response_model=OwnerOut)
 def api_add_owner(owner: OwnerCreate, db: Session = Depends(get_db)):
-    new_owner = add_owner(
+    new_owner = add_owner_with_attachments(
         db=db,
         name=owner.name,
         registration_number=owner.registration_number,
         nationality=owner.nationality,
         iban=owner.iban,
         agent_name=owner.agent_name,
-        notes=owner.notes
+        notes=owner.notes,
+        attachments=owner.attachments
     )
     return owner_to_schema(new_owner)
 
@@ -148,22 +221,20 @@ def api_export_owners_csv(db: Session = Depends(get_db)):
         media_type="text/csv"
     )
 
-# ========== دالة تحويل من ORM إلى Pydantic ==========
+# ========== دالة تحويل ORM إلى Pydantic ==========
 def owner_to_schema(owner, attachments=None):
     if owner is None:
         return None
-    # جلب المرفقات إن لم تُرسل
     if attachments is None and hasattr(owner, "attachments"):
         attachments = owner.attachments
     atts = [
         AttachmentInfo(
             id=a.id,
-            filepath=a.filepath,
+            filepath=getattr(a, "filepath", ""),
             filetype=a.filetype,
-            attachment_type=a.attachment_type.value,
+            attachment_type=a.attachment_type.value if hasattr(a.attachment_type, "value") else str(a.attachment_type),
             notes=a.notes
-        )
-        for a in (attachments or [])
+        ) for a in (attachments or [])
     ]
     return OwnerOut(
         id=owner.id,
@@ -177,6 +248,9 @@ def owner_to_schema(owner, attachments=None):
         updated_at=str(owner.updated_at) if owner.updated_at else None,
         attachments=atts
     )
+
+# ... بقية الدوال والوحدات/المستأجرين/العقود/الدفعات/الفواتير/المرفقات/المستخدمين محفوظة كما لديك
+# وطبق نفس منطق الدوال: to_schema و CRUD والاستثناءات (تم الحفاظ عليها)
 
 
 #======================================
