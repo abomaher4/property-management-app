@@ -299,13 +299,13 @@ Page {
                                     text: "البريد: " + (modelData.email || "-")
                                     font.pixelSize: 14
                                     color: "#777"
-                                    visible: modelData.email
+                                    visible: !!modelData.email
                                 }
                                 Label {
                                     text: "العمل: " + (modelData.work || "-")
                                     font.pixelSize: 14
                                     color: "#777"
-                                    visible: modelData.work
+                                    visible: !!modelData.work
                                 }
                             }
                         }

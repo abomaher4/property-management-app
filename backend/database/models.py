@@ -75,7 +75,7 @@ class Tenant(Base):
     __tablename__ = 'tenants'
     id = Column(Integer, primary_key=True)
     name = Column(String(128), nullable=False)
-    national_id = Column(String(32), nullable=False, index=True)
+    national_id = Column(String(32), nullable=False, unique=True, index=True)
     nationality = Column(String(32), nullable=False)
     phone = Column(String(24), nullable=False)
     email = Column(String(128), nullable=True)
