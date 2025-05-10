@@ -1,5 +1,5 @@
 from sqlalchemy import (
-    Column, Integer, String, Float, Boolean, Date, DateTime, ForeignKey, Text, Enum, Index
+    Column, Integer, String, Float, Boolean, Date, DateTime, ForeignKey, Text, Enum
 )
 from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy.sql import func
@@ -33,7 +33,7 @@ class AttachmentType(enum.Enum):
     invoice = "invoice"
     general = "general"
 
-# ========== 1. Owner ==========
+# ========== ORM MODELS ==========
 class Owner(Base):
     __tablename__ = 'owners'
     id = Column(Integer, primary_key=True)
@@ -49,7 +49,6 @@ class Owner(Base):
     units = relationship('Unit', back_populates='owner')
     attachments = relationship('Attachment', back_populates='owner')
 
-# ========== 2. Unit ==========
 class Unit(Base):
     __tablename__ = 'units'
     id = Column(Integer, primary_key=True)
@@ -70,7 +69,6 @@ class Unit(Base):
     attachments = relationship('Attachment', back_populates='unit')
     contracts = relationship('Contract', back_populates='unit')
 
-# ========== 3. Tenant ==========
 class Tenant(Base):
     __tablename__ = 'tenants'
     id = Column(Integer, primary_key=True)
@@ -88,7 +86,6 @@ class Tenant(Base):
     attachments = relationship('Attachment', back_populates='tenant')
     contracts = relationship('Contract', back_populates='tenant')
 
-# ========== 4. Contract ==========
 class Contract(Base):
     __tablename__ = 'contracts'
     id = Column(Integer, primary_key=True)
@@ -100,7 +97,7 @@ class Contract(Base):
     duration_months = Column(Integer, nullable=False)
     rent_amount = Column(Float, nullable=False)
     rental_platform = Column(String(32), nullable=True)
-    payment_type = Column(String(32), nullable=True) # شهري/ربع سنوي/سنوي
+    payment_type = Column(String(32), nullable=True)
     status = Column(Enum(ContractStatus), nullable=False, default=ContractStatus.active)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=func.now())
@@ -112,7 +109,6 @@ class Contract(Base):
     payments = relationship('Payment', back_populates='contract')
     invoices = relationship('Invoice', back_populates='contract')
 
-# ========== 5. Payment ==========
 class Payment(Base):
     __tablename__ = 'payments'
     id = Column(Integer, primary_key=True)
@@ -127,7 +123,6 @@ class Payment(Base):
     updated_at = Column(DateTime, onupdate=func.now())
     contract = relationship('Contract', back_populates='payments')
 
-# ========== 6. Invoice ==========
 class Invoice(Base):
     __tablename__ = 'invoices'
     id = Column(Integer, primary_key=True)
@@ -142,12 +137,11 @@ class Invoice(Base):
     contract = relationship('Contract', back_populates='invoices')
     attachments = relationship('Attachment', back_populates='invoice')
 
-# ========== 7. Attachment ==========
 class Attachment(Base):
     __tablename__ = 'attachments'
     id = Column(Integer, primary_key=True)
     filepath = Column(String(256), nullable=False)
-    filetype = Column(String(32), nullable=False) # pdf, jpg, png, ...
+    filetype = Column(String(32), nullable=False)
     attachment_type = Column(Enum(AttachmentType), nullable=False, default=AttachmentType.general)
     uploaded_at = Column(DateTime, default=func.now())
     owner_id = Column(Integer, ForeignKey('owners.id', ondelete="CASCADE"), nullable=True)
@@ -163,7 +157,6 @@ class Attachment(Base):
     contract = relationship('Contract', back_populates='attachments')
     invoice = relationship('Invoice', back_populates='attachments')
 
-# ========== 8. AuditLog ==========
 class AuditLog(Base):
     __tablename__ = 'auditlog'
     id = Column(Integer, primary_key=True)
@@ -174,7 +167,6 @@ class AuditLog(Base):
     details = Column(Text, nullable=True)
     timestamp = Column(DateTime, default=func.now())
 
-# ========== 9. Users ==========
 class User(Base):
     __tablename__ = 'users'
     id = Column(Integer, primary_key=True)
@@ -186,13 +178,13 @@ class User(Base):
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
 
-# ========== Schemas (Pydantic) ==========
+# ========== Pydantic Schemas ==========
 from typing import List, Optional
 from pydantic import BaseModel
+from datetime import datetime
 
 class AttachmentIn(BaseModel):
-    filename: str
-    url: str # يمكن أن يكون هو filepath أو مسار خارجي للملف
+    filepath: str
     filetype: str
     attachment_type: Optional[str] = "general"
     notes: Optional[str] = None
@@ -200,6 +192,14 @@ class AttachmentIn(BaseModel):
 class AttachmentOut(AttachmentIn):
     id: int
     owner_id: Optional[int] = None
+    unit_id: Optional[int] = None
+    tenant_id: Optional[int] = None
+    contract_id: Optional[int] = None
+    invoice_id: Optional[int] = None
+    uploaded_at: datetime
+    created_at: Optional[datetime] = None
+
+    model_config = {"from_attributes": True}
 
 class OwnerCreate(BaseModel):
     name: str
@@ -218,9 +218,7 @@ class OwnerOut(BaseModel):
     iban: Optional[str]
     agent_name: Optional[str]
     notes: Optional[str]
-    created_at: str
-    updated_at: Optional[str]
+    created_at: datetime
+    updated_at: Optional[datetime]
     attachments: List[AttachmentOut] = []
-
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
