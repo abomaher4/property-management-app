@@ -3,6 +3,10 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
+from fastapi import HTTPException
+from database.models import InvoiceStatus
+from database.invoices_utils import update_invoice, InvoiceNotFound
+
 from database.db_utils import get_db, init_db
 from database.models import Owner, Unit, Tenant, ContractStatus, InvoiceStatus, AttachmentType, UserRole
 
@@ -714,6 +718,7 @@ def api_add_contract(contract: ContractCreate, db: Session = Depends(get_db)):
     )
     return contract_to_schema(new_contract, db)
 
+
 @app.put("/contracts/{contract_id}", response_model=ContractOut)
 def api_update_contract(contract_id: int, contract: ContractUpdate, db: Session = Depends(get_db)):
     updated_contract = update_contract(db, contract_id, **contract.dict(exclude_unset=True))
@@ -1036,6 +1041,33 @@ def api_detach_invoice_file(attachment_id: int, db: Session = Depends(get_db)):
     return {"msg": "تم حذف المرفق بنجاح"}
 
 @app.get("/invoices/export/csv")
+
+
+# ==== تحويل حالة الفاتورة إلى مدفوعة أو غير مدفوعة ====
+
+
+
+@app.post("/invoices/{invoice_id}/set_paid", response_model=InvoiceOut)
+def api_set_invoice_paid(invoice_id: int, db: Session = Depends(get_db)):
+    """
+    Endpoint يجعل الفاتورة مدفوعة
+    """
+    try:
+        inv = update_invoice(db, invoice_id, status=InvoiceStatus.paid)
+        return invoice_to_schema(inv)
+    except InvoiceNotFound:
+        raise HTTPException(status_code=404, detail="الفاتورة غير موجودة")
+
+@app.post("/invoices/{invoice_id}/set_unpaid", response_model=InvoiceOut)
+def api_set_invoice_unpaid(invoice_id: int, db: Session = Depends(get_db)):
+    """
+    Endpoint يرجع الفاتورة غير مدفوعة
+    """
+    try:
+        inv = update_invoice(db, invoice_id, status=InvoiceStatus.unpaid)
+        return invoice_to_schema(inv)
+    except InvoiceNotFound:
+        raise HTTPException(status_code=404, detail="الفاتورة غير موجودة")
 def api_export_invoices_csv(db: Session = Depends(get_db)):
     csv_data = export_invoices_to_csv(db)
     return Response(

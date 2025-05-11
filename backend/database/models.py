@@ -34,6 +34,7 @@ class AttachmentType(enum.Enum):
     general = "general"
 
 # ========== ORM MODELS ==========
+
 class Owner(Base):
     __tablename__ = 'owners'
     id = Column(Integer, primary_key=True)
@@ -46,6 +47,7 @@ class Owner(Base):
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
     is_deleted = Column(Boolean, default=False)
+
     units = relationship('Unit', back_populates='owner')
     attachments = relationship('Attachment', back_populates='owner')
 
@@ -65,6 +67,7 @@ class Unit(Base):
     updated_at = Column(DateTime, onupdate=func.now())
     is_deleted = Column(Boolean, default=False)
     owner_id = Column(Integer, ForeignKey('owners.id', ondelete="SET NULL"))
+
     owner = relationship('Owner', back_populates='units')
     attachments = relationship('Attachment', back_populates='unit')
     contracts = relationship('Contract', back_populates='unit')
@@ -83,6 +86,7 @@ class Tenant(Base):
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
     is_deleted = Column(Boolean, default=False)
+
     attachments = relationship('Attachment', back_populates='tenant')
     contracts = relationship('Contract', back_populates='tenant')
 
@@ -103,16 +107,18 @@ class Contract(Base):
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
     is_deleted = Column(Boolean, default=False)
+
     unit = relationship('Unit', back_populates='contracts')
     tenant = relationship('Tenant', back_populates='contracts')
     attachments = relationship('Attachment', back_populates='contract')
     payments = relationship('Payment', back_populates='contract')
-    invoices = relationship('Invoice', back_populates='contract')
+    invoices = relationship('Invoice', back_populates='contract',cascade="all, delete",passive_deletes=True)
 
 class Payment(Base):
     __tablename__ = 'payments'
     id = Column(Integer, primary_key=True)
-    contract_id = Column(Integer, ForeignKey('contracts.id', ondelete="CASCADE"))
+    contract_id = Column(Integer, ForeignKey('contracts.id', ondelete="CASCADE"), nullable=False)
+    invoice_id = Column(Integer, ForeignKey('invoices.id', ondelete="CASCADE"), nullable=True)
     due_date = Column(Date, nullable=False)
     amount_due = Column(Float, nullable=False)
     amount_paid = Column(Float, nullable=True, default=0.0)
@@ -121,21 +127,26 @@ class Payment(Base):
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
+
     contract = relationship('Contract', back_populates='payments')
+    invoice = relationship('Invoice', back_populates='payments')
 
 class Invoice(Base):
     __tablename__ = 'invoices'
     id = Column(Integer, primary_key=True)
-    contract_id = Column(Integer, ForeignKey('contracts.id', ondelete="CASCADE"))
+    contract_id = Column(Integer, ForeignKey('contracts.id', ondelete="CASCADE"), nullable=False)
     date_issued = Column(Date, nullable=False)
     amount = Column(Float, nullable=False)
     status = Column(Enum(InvoiceStatus), nullable=False)
     sent_to_email = Column(Boolean, nullable=True, default=False)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=func.now())
+    created_by_contract = Column(Boolean, default=False, nullable=False)
     updated_at = Column(DateTime, onupdate=func.now())
     contract = relationship('Contract', back_populates='invoices')
+    payments = relationship('Payment', back_populates='invoice')
     attachments = relationship('Attachment', back_populates='invoice')
+    
 
 class Attachment(Base):
     __tablename__ = 'attachments'
@@ -151,6 +162,7 @@ class Attachment(Base):
     invoice_id = Column(Integer, ForeignKey('invoices.id', ondelete="CASCADE"), nullable=True)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=func.now())
+
     owner = relationship('Owner', back_populates='attachments')
     unit = relationship('Unit', back_populates='attachments')
     tenant = relationship('Tenant', back_populates='attachments')
@@ -179,6 +191,7 @@ class User(Base):
     updated_at = Column(DateTime, onupdate=func.now())
 
 # ========== Pydantic Schemas ==========
+
 from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime
@@ -198,7 +211,6 @@ class AttachmentOut(AttachmentIn):
     invoice_id: Optional[int] = None
     uploaded_at: datetime
     created_at: Optional[datetime] = None
-
     model_config = {"from_attributes": True}
 
 class OwnerCreate(BaseModel):

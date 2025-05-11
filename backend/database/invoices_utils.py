@@ -24,7 +24,16 @@ def check_invoice_conflict(db: Session, contract_id: int, date_issued, exclude_i
         raise ValidationError("هناك فاتورة لنفس العقد بنفس تاريخ الإصدار")
 
 # إضافة فاتورة جديدة
-def add_invoice(db: Session, contract_id, date_issued, amount, status, sent_to_email=False, notes=None):
+def add_invoice(
+    db: Session,
+    contract_id,
+    date_issued,
+    amount,
+    status,
+    sent_to_email=False,
+    notes=None,
+    created_by_contract=False   # <-- هنا الإضافة الجديدة
+):
     validate_contract(db, contract_id)
     check_invoice_conflict(db, contract_id, date_issued)
     invoice = Invoice(
@@ -33,12 +42,16 @@ def add_invoice(db: Session, contract_id, date_issued, amount, status, sent_to_e
         amount=amount,
         status=status,
         sent_to_email=sent_to_email,
-        notes=notes
+        notes=notes,
+        created_by_contract=created_by_contract  # <-- وهنا نمررها
     )
     db.add(invoice)
     db.commit()
     db.refresh(invoice)
-    log_audit(db, user="system", action="add", table_name="invoices", row_id=invoice.id, details=f"Add invoice for contract {contract_id}")
+    log_audit(
+        db, user="system", action="add", table_name="invoices", row_id=invoice.id,
+        details=f"Add invoice for contract {contract_id}"
+    )
     return invoice
 
 # تعديل فاتورة
@@ -55,7 +68,10 @@ def update_invoice(db: Session, invoice_id, **kwargs):
         setattr(invoice, k, v)
     db.commit()
     db.refresh(invoice)
-    log_audit(db, user="system", action="update", table_name="invoices", row_id=invoice.id, details="Update invoice")
+    log_audit(
+        db, user="system", action="update",
+        table_name="invoices", row_id=invoice.id, details="Update invoice"
+    )
     return invoice
 
 # حذف فاتورة
@@ -63,9 +79,14 @@ def delete_invoice(db: Session, invoice_id):
     invoice = db.query(Invoice).get(invoice_id)
     if not invoice:
         raise InvoiceNotFound("الفاتورة غير موجودة")
+    if getattr(invoice, "created_by_contract", False):  # تحقق من الخاصية
+        raise ValidationError("لا يمكن حذف الفاتورة المرتبطة بعقد.")
     db.delete(invoice)
     db.commit()
-    log_audit(db, user="system", action="delete", table_name="invoices", row_id=invoice_id, details="Delete invoice")
+    log_audit(
+        db, user="system", action="delete",
+        table_name="invoices", row_id=invoice_id, details="Delete invoice"
+    )
     return True
 
 # جلب فاتورة مع مرفقاتها حسب النوع
@@ -85,6 +106,7 @@ def list_invoices(db: Session, page=1, per_page=20, filter_contract_id=None, fil
         query = query.filter(Invoice.contract_id == filter_contract_id)
     if filter_status:
         query = query.filter(Invoice.status == filter_status)
+    query = query.filter(Invoice.contract_id != None)
     total = query.count()
     invoices = query.order_by(Invoice.date_issued.desc()).offset((page-1)*per_page).limit(per_page).all()
     return {
@@ -109,7 +131,10 @@ def attach_invoice_file(db: Session, invoice_id, filepath, filetype, attachment_
     db.add(attachment)
     db.commit()
     db.refresh(attachment)
-    log_audit(db, user="system", action="attach", table_name="attachments", row_id=attachment.id, details=f"Attach {attachment_type.value} to invoice {invoice.id}")
+    log_audit(
+        db, user="system", action="attach", table_name="attachments", row_id=attachment.id,
+        details=f"Attach {attachment_type.value} to invoice {invoice.id}"
+    )
     return attachment
 
 def detach_invoice_file(db: Session, attachment_id):
@@ -118,7 +143,10 @@ def detach_invoice_file(db: Session, attachment_id):
         raise InvoiceNotFound("المرفق غير موجود أو غير مرتبط بفاتورة")
     db.delete(att)
     db.commit()
-    log_audit(db, user="system", action="detach", table_name="attachments", row_id=attachment_id, details="Detach from invoice")
+    log_audit(
+        db, user="system", action="detach", table_name="attachments", row_id=attachment_id,
+        details="Detach from invoice"
+    )
     return True
 
 # تصدير الفواتير إلى CSV
@@ -126,7 +154,7 @@ def export_invoices_to_csv(db: Session):
     invoices = db.query(Invoice).all()
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(['id', 'contract_id', 'date_issued', 'amount', 'status', 'sent_to_email', 'notes'])
+    writer.writerow(['id', 'contract_id', 'date_issued', 'amount', 'status', 'sent_to_email', 'notes', 'created_by_contract'])
     for inv in invoices:
         writer.writerow([
             inv.id,
@@ -135,7 +163,8 @@ def export_invoices_to_csv(db: Session):
             inv.amount,
             inv.status.value,
             inv.sent_to_email if inv.sent_to_email else '',
-            inv.notes or ''
+            inv.notes or '',
+            getattr(inv, "created_by_contract", False)
         ])
     return output.getvalue()
 

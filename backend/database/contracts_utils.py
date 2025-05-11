@@ -4,6 +4,9 @@ from database.models import Contract, Unit, Tenant, Attachment, AttachmentType, 
 from datetime import datetime
 import csv, io
 
+# 🔴 استيراد دالة توليد الفواتير
+from contracts.contract_manager import generate_invoices_for_contract
+
 # استثناءات مخصصة
 class ContractNotFound(Exception): pass
 class ContractExists(Exception): pass
@@ -32,16 +35,19 @@ def check_contract_conflicts(db: Session, unit_id: int, start_date, end_date, ex
     if query.count() > 0:
         raise ValidationError("هناك عقد آخر لهذه الوحدة ضمن نفس الفترة")
 
-# إضافة عقد جديد
+# --------------- تعديل هنا: إضافة عقد جديد وتوليد الفواتير تلقائيًا ----------------
 def add_contract(db: Session, contract_number, unit_id, tenant_id, start_date, end_date, duration_months,
-                rent_amount, status, rental_platform=None, payment_type=None, notes=None):
+                 rent_amount, status, rental_platform=None, payment_type=None, notes=None):
     # تحقق من رقم العقد الفريد
     if db.query(Contract).filter_by(contract_number=contract_number, is_deleted=False).first():
         raise ContractExists("رقم العقد مستخدم بالفعل")
+
     # تحقق من الوحدة والمستأجر
     validate_unit_and_tenant(db, unit_id, tenant_id)
+
     # تحقق من تداخل العقود
     check_contract_conflicts(db, unit_id, start_date, end_date)
+
     new_contract = Contract(
         contract_number=contract_number,
         unit_id=unit_id,
@@ -55,13 +61,19 @@ def add_contract(db: Session, contract_number, unit_id, tenant_id, start_date, e
         status=status,
         notes=notes
     )
+
     db.add(new_contract)
     db.commit()
     db.refresh(new_contract)
+    
+    # ---------- السطر الجديد: توليد الفواتير فورًا ----------
+    generate_invoices_for_contract(db, new_contract)
+    # ------------------------------------------------------
+
     log_audit(db, user="system", action="add", table_name="contracts", row_id=new_contract.id, details=f"Add: {contract_number}")
     return new_contract
 
-# تعديل عقد
+# باقي الدوال كما هي بالملف القديم (بدون تغيير)
 def update_contract(db: Session, contract_id, **kwargs):
     contract = db.query(Contract).get(contract_id)
     if not contract or contract.is_deleted:
@@ -86,17 +98,16 @@ def update_contract(db: Session, contract_id, **kwargs):
     log_audit(db, user="system", action="update", table_name="contracts", row_id=contract.id, details=f"Update: {contract.contract_number}")
     return contract
 
-# حذف منطقي
 def delete_contract(db: Session, contract_id):
     contract = db.query(Contract).get(contract_id)
     if not contract or contract.is_deleted:
         raise ContractNotFound("العقد غير موجود أو محذوف")
-    contract.is_deleted = True
+    db.delete(contract)  # <-- حذف فعلي
     db.commit()
     log_audit(db, user="system", action="delete", table_name="contracts", row_id=contract.id, details=f"Delete: {contract.contract_number}")
     return True
 
-# جلب عقد مع مرفقاته
+
 def get_contract(db: Session, contract_id, attachment_type=None):
     contract = db.query(Contract).get(contract_id)
     if not contract or contract.is_deleted:
@@ -106,7 +117,6 @@ def get_contract(db: Session, contract_id, attachment_type=None):
         attachments = [a for a in contract.attachments if a.attachment_type == attachment_type]
     return contract, attachments
 
-# قائمة العقود مع Pagination وFiltering
 def list_contracts(db: Session, page=1, per_page=20, filter_contract_number=None, filter_unit_id=None, filter_tenant_id=None, filter_status=None):
     query = db.query(Contract).filter_by(is_deleted=False)
     if filter_contract_number:
@@ -126,7 +136,6 @@ def list_contracts(db: Session, page=1, per_page=20, filter_contract_number=None
         "data": contracts
     }
 
-# Attach/Detach مرفق لعقد
 def attach_contract_file(db: Session, contract_id, filepath, filetype, attachment_type: AttachmentType, notes=None):
     contract = db.query(Contract).get(contract_id)
     if not contract or contract.is_deleted:
@@ -153,7 +162,6 @@ def detach_contract_file(db: Session, attachment_id):
     log_audit(db, user="system", action="detach", table_name="attachments", row_id=attachment_id, details="Detach from contract")
     return True
 
-# تصدير العقود إلى CSV
 def export_contracts_to_csv(db: Session):
     contracts = db.query(Contract).filter_by(is_deleted=False).all()
     output = io.StringIO()
@@ -175,7 +183,6 @@ def export_contracts_to_csv(db: Session):
         ])
     return output.getvalue()
 
-# سجل تدقيق
 def log_audit(db: Session, user: str, action: str, table_name: str, row_id: int, details: str = ""):
     log = AuditLog(
         user=user,

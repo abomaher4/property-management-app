@@ -20,21 +20,43 @@ Page {
         contractsApiHandler.get_all_contracts();
         unitsApiHandler.get_all_units();
         tenantsApiHandler.get_tenants();
-    } // <-- يجب إغلاق القوس هنا
+    }
 
     function updateLocalCache(newData) {
         cachedContracts = newData || [];
         lastUpdateTime = new Date().getTime();
-    } // <-- أغلق هنا
+    }
 
     function applyFilters() {
         // منطق الفلترة
-    } // أغلق هنا أيضًا
+    }
 
     function showContractDetails(contract) {
         selectedContract = contract;
         contractDetailsPopup.open();
-    } // أغلق هنا
+    }
+
+    function calculateDuration(startDate, endDate) {
+        if (!startDate || !endDate) return 0;
+        
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        
+        // حساب الفرق بالمللي ثانية
+        const diffTime = end - start;
+        
+        // تحويل المللي ثانية إلى أيام
+        const diffDays = diffTime / (1000 * 60 * 60 * 24);
+        
+        // حساب عدد الأشهر الكاملة
+        const months = (end.getFullYear() - start.getFullYear()) * 12 + 
+                      (end.getMonth() - start.getMonth());
+        
+        return {
+            months: months,
+            days: diffDays
+        };
+    }
 
     // شريط العنوان
     header: ToolBar {
@@ -233,7 +255,7 @@ Page {
                     
                     // البحث باسم الوحدة
                     var unit = unitsList.find(u => u.id === item.unit_id);
-                    if (unit && unit_number.toLowerCase().includes(search)) return true;
+                    if (unit && unit.unit_number.toLowerCase().includes(search)) return true;
                     
                     // البحث باسم المستأجر
                     var tenant = tenantsList.find(t => t.id === item.tenant_id);
@@ -411,7 +433,7 @@ Page {
         property int tenant_id: -1
         property string start_date: ""
         property string end_date: ""
-        property int duration_months: 12
+        property int duration_months: 0
         property real rent_amount: 0
         property string status: "active"
         property string rental_platform: ""
@@ -424,7 +446,7 @@ Page {
             tenant_id = -1;
             start_date = "";
             end_date = "";
-            duration_months = 12;
+            duration_months = 0;
             rent_amount = 0;
             status = "active";
             rental_platform = "";
@@ -509,7 +531,13 @@ Page {
                     Layout.fillWidth: true
                     placeholderText: "YYYY-MM-DD"
                     text: addPopup.start_date
-                    onTextChanged: addPopup.start_date = text
+                    onTextChanged: {
+                        addPopup.start_date = text;
+                        if (addPopup.start_date && addPopup.end_date) {
+                            const duration = root.calculateDuration(addPopup.start_date, addPopup.end_date);
+                            addPopup.duration_months = duration.months;
+                        }
+                    }
                 }
 
                 // حقل تاريخ الانتهاء
@@ -521,20 +549,31 @@ Page {
                     Layout.fillWidth: true
                     placeholderText: "YYYY-MM-DD"
                     text: addPopup.end_date
-                    onTextChanged: addPopup.end_date = text
+                    onTextChanged: {
+                        addPopup.end_date = text;
+                        if (addPopup.start_date && addPopup.end_date) {
+                            const duration = root.calculateDuration(addPopup.start_date, addPopup.end_date);
+                            addPopup.duration_months = duration.months;
+                        }
+                    }
                 }
 
-                // حقل المدة
+                // حقل المدة (للقراءة فقط)
                 Label { 
-                    text: "المدة (شهر) *:" 
+                    text: "المدة (شهر):" 
                     font.pixelSize: 14
                 }
-                SpinBox {
+                Label {
                     Layout.fillWidth: true
-                    from: 1
-                    to: 120
-                    value: addPopup.duration_months
-                    onValueChanged: addPopup.duration_months = value
+                    text: addPopup.duration_months + " شهر"
+                    font.pixelSize: 14
+                    color: "#555"
+                    padding: 12
+                    background: Rectangle {
+                        color: "#f5f5f5"
+                        radius: 4
+                        border.color: "#e0e0e0"
+                    }
                 }
 
                 // حقل قيمة الإيجار
@@ -579,11 +618,11 @@ Page {
                     text: "نوع الدفع:" 
                     font.pixelSize: 14
                 }
-                TextField {
+                ComboBox {
                     Layout.fillWidth: true
-                    placeholderText: "شهري/ربع سنوي/سنوي"
-                    text: addPopup.payment_type
-                    onTextChanged: addPopup.payment_type = text
+                    model: ["شهري", "ربع سنوي", "نصف سنوي", "سنوي"]
+                    currentIndex: model.indexOf(addPopup.payment_type)
+                    onActivated: addPopup.payment_type = model[currentIndex]
                 }
             }
 
@@ -685,7 +724,7 @@ Page {
             tenant_id = contract.tenant_id || -1;
             start_date = contract.start_date || "";
             end_date = contract.end_date || "";
-            duration_months = contract.duration_months || 12;
+            duration_months = contract.duration_months || 0;
             rent_amount = contract.rent_amount || 0;
             status = contract.status || "active";
             rental_platform = contract.rental_platform || "";
@@ -698,7 +737,7 @@ Page {
         property int tenant_id: -1
         property string start_date: ""
         property string end_date: ""
-        property int duration_months: 12
+        property int duration_months: 0
         property real rent_amount: 0
         property string status: "active"
         property string rental_platform: ""
@@ -780,7 +819,13 @@ Page {
                 TextField {
                     Layout.fillWidth: true
                     text: editPopup.start_date
-                    onTextChanged: editPopup.start_date = text
+                    onTextChanged: {
+                        editPopup.start_date = text;
+                        if (editPopup.start_date && editPopup.end_date) {
+                            const duration = root.calculateDuration(editPopup.start_date, editPopup.end_date);
+                            editPopup.duration_months = duration.months;
+                        }
+                    }
                 }
 
                 // حقل تاريخ الانتهاء
@@ -791,20 +836,31 @@ Page {
                 TextField {
                     Layout.fillWidth: true
                     text: editPopup.end_date
-                    onTextChanged: editPopup.end_date = text
+                    onTextChanged: {
+                        editPopup.end_date = text;
+                        if (editPopup.start_date && editPopup.end_date) {
+                            const duration = root.calculateDuration(editPopup.start_date, editPopup.end_date);
+                            editPopup.duration_months = duration.months;
+                        }
+                    }
                 }
 
-                // حقل المدة
+                // حقل المدة (للقراءة فقط)
                 Label { 
-                    text: "المدة (شهر) *:" 
+                    text: "المدة (شهر):" 
                     font.pixelSize: 14
                 }
-                SpinBox {
+                Label {
                     Layout.fillWidth: true
-                    from: 1
-                    to: 120
-                    value: editPopup.duration_months
-                    onValueChanged: editPopup.duration_months = value
+                    text: editPopup.duration_months + " شهر"
+                    font.pixelSize: 14
+                    color: "#555"
+                    padding: 12
+                    background: Rectangle {
+                        color: "#f5f5f5"
+                        radius: 4
+                        border.color: "#e0e0e0"
+                    }
                 }
 
                 // حقل قيمة الإيجار
@@ -847,10 +903,11 @@ Page {
                     text: "نوع الدفع:" 
                     font.pixelSize: 14
                 }
-                TextField {
+                ComboBox {
                     Layout.fillWidth: true
-                    text: editPopup.payment_type
-                    onTextChanged: editPopup.payment_type = text
+                    model: ["شهري", "ربع سنوي", "نصف سنوي", "سنوي"]
+                    currentIndex: model.indexOf(editPopup.payment_type)
+                    onActivated: editPopup.payment_type = model[currentIndex]
                 }
             }
 
@@ -1278,7 +1335,7 @@ Page {
         }
     }
 
-        // اتصالات API - العقود
+    // اتصالات API - العقود
     Connections {
         target: contractsApiHandler
         function onContractsChanged() {
@@ -1309,7 +1366,6 @@ Page {
             root.tenantsList = tenantsApiHandler.tenantsList || [];
         }
     }
-
 
     // التهيئة الأولية
     Component.onCompleted: {

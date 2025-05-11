@@ -8,7 +8,6 @@ from PySide6.QtQml import QQmlApplicationEngine
 os.environ["QT_QUICK_CONTROLS_STYLE"] = "Fusion"
 
 # ========== استيراد جميع الـ API Handlers ==========
-from frontend.attachments_api_handler import AttachmentsApiHandler
 from frontend.audit_api_handler import AuditApiHandler
 from frontend.contracts_api_handler import ContractsApiHandler
 from frontend.dashboard_api_handler import DashboardApiHandler
@@ -25,9 +24,6 @@ if __name__ == "__main__":
     engine = QQmlApplicationEngine()
 
     # ========== إنشاء وربط كل Handler مع QML Context ==========
-
-    attachmentsApiHandler = AttachmentsApiHandler()
-    engine.rootContext().setContextProperty("attachmentsApiHandler", attachmentsApiHandler)
 
     auditApiHandler = AuditApiHandler()
     engine.rootContext().setContextProperty("auditApiHandler", auditApiHandler)

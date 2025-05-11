@@ -92,3 +92,16 @@ class InvoicesApiHandler(QObject):
         return self._invoices
 
     invoicesList = Property('QVariant', invoices, notify=invoicesChanged)
+
+    @Slot(int)
+    def set_invoice_paid(self, invoice_id):
+        try:
+            resp = requests.post(f"http://localhost:8000/invoices/{invoice_id}/set_paid")
+            if resp.ok:
+                self.get_all_invoices()
+                self.invoicesChanged.emit()
+            else:
+                data = resp.json()
+                self.errorOccurred.emit(str(data))
+        except Exception as e:
+            self.errorOccurred.emit(str(e))

@@ -7,10 +7,22 @@ Page {
     background: Rectangle { color: "#f5f6fa" }
 
     property var cachedPayments: []
+    property var availableInvoices: []
     property bool isLoading: false
     property var selectedPayment: null
     property string searchText: ""
     property var contractsList: []
+
+    function updateInvoicesForContract(contractId) {
+    availableInvoices = [];
+    if (contractId > 0 && typeof invoicesApiHandler !== "undefined") {
+        var list = invoicesApiHandler.invoicesList || [];
+        availableInvoices = list.filter(function(inv) {
+            return inv.contract_id === contractId && inv.status !== "paid";
+        });
+    }
+}
+
 
     function safeText(val) {
         return (val !== undefined && val !== null) ? String(val) : "";
@@ -272,6 +284,13 @@ Page {
                                     font.pixelSize: 14
                                     color: "#555"
                                 }
+
+                                Label {
+                                    text: "رقم الفاتورة: " + (modelData.invoice_id !== undefined && modelData.invoice_id !== null ? modelData.invoice_id : "غير محدد")
+                                    font.pixelSize: 14
+                                    color: "#555"
+                                }
+
                             }
 
                             // التواريخ
@@ -443,6 +462,18 @@ Page {
                     color: "#555"
                 }
 
+                Label {
+                    text: "رقم الفاتورة:"
+                    font { pixelSize: 14; bold: true }
+                    color: "#333"
+                }
+                Label {
+                    text: selectedPayment && selectedPayment.invoice_id ? selectedPayment.invoice_id : "غير محدد"
+                    font.pixelSize: 14
+                    color: "#555"
+                }
+
+
                 // تاريخ الاستحقاق
                 Label { 
                     text: "تاريخ الاستحقاق:" 
@@ -593,9 +624,28 @@ Page {
                     textRole: "contract_number"
                     valueRole: "id"
                     currentIndex: -1
-                    onActivated: addPaymentPopup.selectedContractId = currentValue
+                    onActivated: {
+                        addPaymentPopup.selectedContractId = currentValue;
+                        root.updateInvoicesForContract(currentValue);
+                        addInvoiceCombo.currentIndex = -1;
+                    }
                     displayText: currentText.length > 0 ? currentText : "اختر رقم العقد"
                 }
+
+                Label {
+                    text: "الفاتورة المرتبطة *:"
+                    font.pixelSize: 14
+                }
+                ComboBox {
+                    id: addInvoiceCombo
+                    Layout.fillWidth: true
+                    model: root.availableInvoices
+                    textRole: "id"
+                    valueRole: "id"
+                    displayText: currentText.length > 0 ? "فاتورة #" + currentText : "اختر الفاتورة"
+                    currentIndex: -1
+                }
+
 
                 // حقل تاريخ الاستحقاق
                 Label { 
@@ -695,6 +745,7 @@ Page {
                         
                         paymentsApiHandler.add_payment({
                             contract_id: addPaymentPopup.selectedContractId,
+                            invoice_id: root.availableInvoices[addInvoiceCombo.currentIndex].id,
                             due_date: addDueDate.text,
                             amount_due: Number(addAmountDue.text),
                             amount_paid: addAmountPaid.text ? Number(addAmountPaid.text) : 0,
@@ -706,6 +757,7 @@ Page {
                         addPaymentPopup.close();
                         addPaymentPopup.addError = "";
                         addContractCombo.currentIndex = -1;
+                        addInvoiceCombo.currentIndex = -1;
                         addDueDate.text = "";
                         addAmountDue.text = "";
                         addAmountPaid.text = "";
@@ -1078,6 +1130,7 @@ Page {
 
     // التهيئة الأولية
     Component.onCompleted: {
+        invoicesApiHandler.get_all_invoices();
         refreshData();
     }
 }
