@@ -25,12 +25,24 @@ def validate_email(email: str):
         raise ValidationError("البريد الإلكتروني غير صحيح")
 
 # إضافة مستأجر جديد
-def add_tenant(db: Session, name, national_id, phone, nationality, email=None, address=None, work=None, notes=None):
+def add_tenant(
+    db: Session,
+    name,
+    national_id,
+    phone,
+    nationality,
+    email=None,
+    address=None,
+    work=None,
+    notes=None,
+    attachments: list = None
+):
     validate_national_id(national_id)
     validate_phone(phone)
     validate_email(email)
     if db.query(Tenant).filter_by(national_id=national_id, is_deleted=False).first():
         raise TenantExists("رقم الهوية مستخدم سابقًا")
+
     new_tenant = Tenant(
         name=name,
         national_id=national_id,
@@ -44,28 +56,59 @@ def add_tenant(db: Session, name, national_id, phone, nationality, email=None, a
     db.add(new_tenant)
     db.commit()
     db.refresh(new_tenant)
+
+    # تعديل المرفقات المؤقتة لربطها بالـ tenant الجديد
+    if attachments:
+        for att_id in attachments:
+            att = db.query(Attachment).get(att_id)
+            if att and att.tenant_id in (None, 0):
+                att.tenant_id = new_tenant.id
+        db.commit()
+
     log_audit(db, user="system", action="add", table_name="tenants", row_id=new_tenant.id, details=f"Add: {name}")
     return new_tenant
 
 # تعديل مستأجر
-def update_tenant(db: Session, tenant_id, **kwargs):
-    tenant = db.query(Tenant).get(tenant_id)
-    if not tenant or tenant.is_deleted:
-        raise TenantNotFound("المستأجر غير موجود")
-    if "national_id" in kwargs:
-        validate_national_id(kwargs["national_id"])
-        exist = db.query(Tenant).filter_by(national_id=kwargs["national_id"], is_deleted=False).first()
-        if exist and exist.id != tenant_id:
-            raise TenantExists("رقم الهوية مستخدم سابقًا")
-    if "phone" in kwargs:
-        validate_phone(kwargs["phone"])
-    if "email" in kwargs:
-        validate_email(kwargs["email"])
-    for k, v in kwargs.items():
-        setattr(tenant, k, v)
+def update_tenant(
+    db: Session,
+    tenant_id,
+    name,
+    national_id,
+    phone,
+    nationality,
+    email=None,
+    address=None,
+    work=None,
+    notes=None,
+    attachments: list = None
+):
+    tenant = db.query(Tenant).filter_by(id=tenant_id, is_deleted=False).first()
+    if not tenant:
+        raise TenantNotFound()
+
+    tenant.name = name
+    tenant.national_id = national_id
+    tenant.phone = phone
+    tenant.nationality = nationality
+    tenant.email = email
+    tenant.address = address
+    tenant.work = work
+    tenant.notes = notes
+
+    # الخطوة الجديدة: تحديث المرفقات
+    if attachments is not None:
+        # 1. احذف ربط كل المرفقات السابقة غير الموجودة في القائمة الجديدة
+        for att in tenant.attachments[:]:
+            if att.id not in attachments:
+                att.tenant_id = None  # أو حذف المرفق نهائيًا حسب تصميمك
+        # 2. أربط كل المرفقات الحالية بالمستأجر الحالي
+        for att_id in attachments:
+            att = db.query(Attachment).get(att_id)
+            if att and att.tenant_id != tenant_id:
+                att.tenant_id = tenant_id
+
     db.commit()
     db.refresh(tenant)
-    log_audit(db, user="system", action="update", table_name="tenants", row_id=tenant.id, details=f"Update: {tenant.name}")
     return tenant
 
 # حذف منطقي

@@ -25,8 +25,6 @@ Rectangle {
                 { name: "المستأجرين", page: "Tenants.qml" },
                 { name: "العقود", page: "Contracts.qml" },
                 { name: "الفواتير", page: "InvoicesPage.qml" },
-                { name: "المدفوعات", page: "PaymentsPage.qml" },
-                { name: "المرفقات", page: "AttachmentsPage.qml" },
                 { name: "المستخدمين", page: "UsersPage.qml" },
                 { name: "سجلات النظام", page: "AuditLogPage.qml" }
             ]

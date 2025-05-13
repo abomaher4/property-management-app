@@ -13,6 +13,8 @@ Page {
     property int lastUpdateTime: 0
     property var selectedUnit: null
     property var ownersList: []
+    property var currentAttachments: []
+    property var currentUnitAttachment: null
 
     // دالة تحديث البيانات
     function refreshData() {
@@ -32,6 +34,56 @@ Page {
     function showUnitDetails(unit) {
         selectedUnit = unit;
         unitDetailsPopup.open();
+    }
+
+    // دالة مسح المرفقات
+    function clearAttachments() {
+        currentAttachments = [];
+        currentUnitAttachment = null;
+    }
+
+    // نافذة اختيار الملفات
+    FileDialog {
+        id: fileDialog
+        title: "اختر ملفات المرفقات"
+        folder: StandardPaths.writableLocation(StandardPaths.HomeLocation)
+        fileMode: FileDialog.OpenFiles
+        nameFilters: ["ملفات الصور (*.png *.jpg *.jpeg)"]
+        onAccepted: {
+            var files = [];
+            for (var i = 0; i < fileDialog.files.length; i++) {
+                var filePath = String(fileDialog.files[i]).replace("file:///", "");
+                files.push({
+                    "path": filePath,
+                    "is_identity": false
+                });
+            }
+            currentAttachments = currentAttachments.concat(files);
+        }
+    }
+
+    // نافذة اختيار صورة الوحدة
+    FileDialog {
+        id: unitDialog
+        title: "اختر صورة الوحدة"
+        folder: StandardPaths.writableLocation(StandardPaths.HomeLocation)
+        fileMode: FileDialog.OpenFile
+        nameFilters: ["ملفات الصور (*.png *.jpg *.jpeg)"]
+        onAccepted: {
+            var filePath = String(unitDialog.file);
+            var filename = filePath.split("/").pop();
+            var ext = filename.split(".").pop().toLowerCase();
+            var filetype = ext === "png" ? "image/png"
+                        : (ext === "jpg" || ext === "jpeg") ? "image/jpeg"
+                        : "other";
+            currentUnitAttachment = {
+                "filename": filename,
+                "url": filePath,
+                "filetype": filetype,
+                "attachment_type": "unit",
+                "notes": ""
+            };
+        }
     }
 
     // شريط العنوان
@@ -310,7 +362,7 @@ Page {
                                 }
                             }
 
-                            // المالك
+                            // المالك والمرفقات
                             Row {
                                 spacing: 10
                                 Label {
@@ -327,6 +379,20 @@ Page {
                                         var owner = ownersList.find(o => o.id === modelData.owner_id);
                                         return owner ? owner.name : "غير معروف";
                                     }
+                                    font.pixelSize: 14
+                                    color: "#555"
+                                }
+                                
+                                Label {
+                                    text: "المرفقات:"
+                                    font {
+                                        pixelSize: 14
+                                        bold: true
+                                    }
+                                    color: "#333"
+                                }
+                                Label {
+                                    text: modelData.attachments ? modelData.attachments.length : 0
                                     font.pixelSize: 14
                                     color: "#555"
                                 }
@@ -425,6 +491,7 @@ Page {
             building_name = "";
             floor_number = 0;
             notes = "";
+            root.clearAttachments();
         }
 
         background: Rectangle {
@@ -587,6 +654,57 @@ Page {
                 wrapMode: TextArea.Wrap
             }
 
+            // قسم المرفقات
+            Label { 
+                text: "المرفقات:" 
+                font {
+                    pixelSize: 14
+                    bold: true
+                }
+            }
+
+            Row {
+                spacing: 15
+                Layout.alignment: Qt.AlignHCenter
+
+                // زر إضافة صورة الوحدة
+                Button {
+                    text: "➕ صورة الوحدة"
+                    onClicked: unitDialog.open()
+                    
+                    background: Rectangle {
+                        color: parent.hovered ? "#bbdefb" : "#e3f2fd"
+                        radius: 4
+                        border.color: "#90caf9"
+                    }
+                }
+
+                // زر إضافة مرفقات أخرى
+                Button {
+                    text: "➕ مرفقات أخرى"
+                    onClicked: fileDialog.open()
+                    
+                    background: Rectangle {
+                        color: parent.hovered ? "#c8e6c9" : "#e8f5e9"
+                        radius: 4
+                        border.color: "#a5d6a7"
+                    }
+                }
+            }
+
+            // عدد المرفقات المحددة
+            Label {
+                text: {
+                    var count = 0;
+                    if (root.currentUnitAttachment) count++;
+                    count += root.currentAttachments.length;
+                    return "عدد المرفقات المحددة: " + count;
+                }
+                font.pixelSize: 14
+                color: "#666"
+                Layout.alignment: Qt.AlignHCenter
+            }
+
             // أزرار الحفظ والإلغاء
             Row {
                 spacing: 20
@@ -602,6 +720,12 @@ Page {
                             return;
                         }
                         
+                        var attachments = [];
+                        if (root.currentUnitAttachment) {
+                            attachments.push(root.currentUnitAttachment);
+                        }
+                        attachments = attachments.concat(root.currentAttachments);
+                        
                         unitsApiHandler.add_unit({
                             unit_number: addPopup.unit_number,
                             unit_type: addPopup.unit_type,
@@ -612,10 +736,9 @@ Page {
                             owner_id: addPopup.owner_id,
                             building_name: addPopup.building_name,
                             floor_number: addPopup.floor_number,
-                            notes: addPopup.notes
+                            notes: addPopup.notes,
+                            attachments: attachments
                         });
-
-
 
                         addPopup.close();
                     }
@@ -646,7 +769,6 @@ Page {
                         border.color: "#bdbdbd"
                     }
                 }
-  
             }
         }
     }
@@ -676,6 +798,7 @@ Page {
             building_name = unit.building_name || "";
             floor_number = unit.floor_number || 0;
             notes = unit.notes || "";
+            root.clearAttachments();
         }
 
         property string unit_number: ""
@@ -844,6 +967,71 @@ Page {
                 wrapMode: TextArea.Wrap
             }
 
+            // قسم المرفقات
+            Label { 
+                text: "المرفقات الحالية:" 
+                font {
+                    pixelSize: 14
+                    bold: true
+                }
+            }
+
+            Label {
+                text: editPopup.unitData ? "عدد المرفقات: " + (editPopup.unitData.attachments ? editPopup.unitData.attachments.length : 0) : ""
+                font.pixelSize: 14
+                color: "#666"
+            }
+
+            Label { 
+                text: "إضافة مرفقات جديدة:" 
+                font {
+                    pixelSize: 14
+                    bold: true
+                }
+            }
+
+            Row {
+                spacing: 15
+                Layout.alignment: Qt.AlignHCenter
+
+                // زر إضافة صورة الوحدة
+                Button {
+                    text: "➕ صورة الوحدة"
+                    onClicked: unitDialog.open()
+                    
+                    background: Rectangle {
+                        color: parent.hovered ? "#bbdefb" : "#e3f2fd"
+                        radius: 4
+                        border.color: "#90caf9"
+                    }
+                }
+
+                // زر إضافة مرفقات أخرى
+                Button {
+                    text: "➕ مرفقات أخرى"
+                    onClicked: fileDialog.open()
+                    
+                    background: Rectangle {
+                        color: parent.hovered ? "#c8e6c9" : "#e8f5e9"
+                        radius: 4
+                        border.color: "#a5d6a7"
+                    }
+                }
+            }
+
+            // عدد المرفقات الجديدة
+            Label {
+                text: {
+                    var count = 0;
+                    if (root.currentUnitAttachment) count++;
+                    count += root.currentAttachments.length;
+                    return "عدد المرفقات الجديدة: " + count;
+                }
+                font.pixelSize: 14
+                color: "#666"
+                Layout.alignment: Qt.AlignHCenter
+            }
+
             // أزرار الحفظ والإلغاء
             Row {
                 spacing: 20
@@ -860,6 +1048,12 @@ Page {
                         }
                         
                         if (editPopup.unitData) {
+                            var newAttachments = [];
+                            if (root.currentUnitAttachment) {
+                                newAttachments.push(root.currentUnitAttachment);
+                            }
+                            newAttachments = newAttachments.concat(root.currentAttachments);
+                            
                             unitsApiHandler.update_unit(
                                 editPopup.unitData.id,
                                 {
@@ -872,11 +1066,10 @@ Page {
                                     owner_id: editPopup.owner_id,
                                     building_name: editPopup.building_name,
                                     floor_number: editPopup.floor_number,
-                                    notes: editPopup.notes
+                                    notes: editPopup.notes,
+                                    attachments: newAttachments
                                 }
                             );
-
-
 
                             editPopup.close();
                         }
@@ -1089,6 +1282,21 @@ Page {
                     font.pixelSize: 14
                     color: "#555"
                 }
+
+                // عدد المرفقات
+                Label { 
+                    text: "عدد المرفقات:" 
+                    font {
+                        pixelSize: 14
+                        bold: true
+                    }
+                    color: "#333"
+                }
+                Label { 
+                    text: selectedUnit ? (selectedUnit.attachments ? selectedUnit.attachments.length : 0) : 0 
+                    font.pixelSize: 14
+                    color: "#555"
+                }
             }
 
             // الملاحظات
@@ -1110,6 +1318,78 @@ Page {
                     color: "#fafafa"
                     border.color: "#e0e0e0"
                     radius: 4
+                }
+            }
+
+            // المرفقات
+            Label { 
+                text: "المرفقات:" 
+                font {
+                    pixelSize: 14
+                    bold: true
+                }
+                color: "#333"
+            }
+
+            ScrollView {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 250
+                clip: true
+
+                Grid {
+                    width: parent.width
+                    columns: 3
+                    spacing: 15
+
+                    Repeater {
+                        model: selectedUnit ? selectedUnit.attachments : []
+
+                        Rectangle {
+                            width: 180
+                            height: 200
+                            color: "#fafafa"
+                            radius: 8
+                            border.color: "#e0e0e0"
+
+                            Column {
+                                width: parent.width
+                                spacing: 5
+                                padding: 10
+
+                                // صورة المرفق
+                                Image {
+                                    width: 160
+                                    height: 150
+                                    source: modelData.url || modelData.filepath
+                                    fillMode: Image.PreserveAspectFit
+                                    sourceSize.width: 160
+                                    sourceSize.height: 150
+                                }
+
+                                // نوع المرفق
+                                Label {
+                                    width: parent.width
+                                    horizontalAlignment: Text.AlignHCenter
+                                    text: modelData.is_identity ? "صورة الوحدة" : "مرفق إضافي"
+                                    elide: Text.ElideRight
+                                    font.pixelSize: 12
+                                }
+
+                                // اسم الملف
+                                Label {
+                                    width: parent.width
+                                    horizontalAlignment: Text.AlignHCenter
+                                    text: {
+                                        var parts = modelData.path.split("/");
+                                        return parts[parts.length - 1];
+                                    }
+                                    elide: Text.ElideMiddle
+                                    font.pixelSize: 10
+                                    color: "#777"
+                                }
+                            }
+                        }
+                    }
                 }
             }
 

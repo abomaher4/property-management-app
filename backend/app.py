@@ -468,6 +468,7 @@ class TenantCreate(BaseModel):
     address: Optional[str] = None
     work: Optional[str] = None
     notes: Optional[str] = None
+    attachments: Optional[list[int]] = []
 
 class TenantUpdate(BaseModel):
     name: Optional[constr(min_length=3, max_length=128)] = None
@@ -528,14 +529,28 @@ def api_add_tenant(tenant: TenantCreate, db: Session = Depends(get_db)):
         email=tenant.email,
         address=tenant.address,
         work=tenant.work,
-        notes=tenant.notes
+        notes=tenant.notes,
+        attachments=getattr(tenant, "attachments", []) or []
     )
     return tenant_to_schema(new_tenant)
 
 @app.put("/tenants/{tenant_id}", response_model=TenantOut)
-def api_update_tenant(tenant_id: int, tenant: TenantUpdate, db: Session = Depends(get_db)):
-    updated_tenant = update_tenant(db, tenant_id, **tenant.dict(exclude_unset=True))
+def api_update_tenant(tenant_id: int, tenant: TenantCreate, db: Session = Depends(get_db)):
+    updated_tenant = update_tenant(
+        db=db,
+        tenant_id=tenant_id,
+        name=tenant.name,
+        national_id=tenant.national_id,
+        phone=tenant.phone,
+        nationality=tenant.nationality,
+        email=tenant.email,
+        address=tenant.address,
+        work=tenant.work,
+        notes=tenant.notes,
+        attachments=getattr(tenant, "attachments", []) or []
+    )
     return tenant_to_schema(updated_tenant)
+
 
 @app.delete("/tenants/{tenant_id}", response_model=dict)
 def api_delete_tenant(tenant_id: int, db: Session = Depends(get_db)):
