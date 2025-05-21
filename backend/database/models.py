@@ -33,6 +33,7 @@ class AttachmentType(enum.Enum):
     invoice = "invoice"
     general = "general"
 
+
 # ========== ORM MODELS ==========
 
 class Owner(Base):
@@ -152,6 +153,7 @@ class Attachment(Base):
     __tablename__ = 'attachments'
     id = Column(Integer, primary_key=True)
     filepath = Column(String(256), nullable=False)
+    filename = Column(String(256), nullable=True)
     filetype = Column(String(32), nullable=False)
     attachment_type = Column(Enum(AttachmentType), nullable=False, default=AttachmentType.general)
     uploaded_at = Column(DateTime, default=func.now())
@@ -199,11 +201,13 @@ from datetime import datetime
 class AttachmentIn(BaseModel):
     filepath: str
     filetype: str
+    filename: Optional[str] = None
     attachment_type: Optional[str] = "general"
     notes: Optional[str] = None
 
 class AttachmentOut(AttachmentIn):
     id: int
+    filename: Optional[str] = None
     owner_id: Optional[int] = None
     unit_id: Optional[int] = None
     tenant_id: Optional[int] = None

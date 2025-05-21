@@ -3,7 +3,7 @@ import QtQuick.Controls 2.15
 
 Rectangle {
     id: loginPageRoot
-    color: "#222b36"  // لون خلفية داكن
+    color: "#222b36" // لون خلفية داكن
     anchors.margins: 0
     anchors.fill: parent
     
@@ -103,12 +103,12 @@ Rectangle {
                     border.width: 3
                     border.color: "#3a9e74"
                     
-                    // تسريع حركة النبض
+                    // تبطيء حركة النبض
                     SequentialAnimation on scale {
                         running: true
                         loops: Animation.Infinite
-                        NumberAnimation { to: 1.05; duration: 900; easing.type: Easing.InOutQuad }
-                        NumberAnimation { to: 1.0; duration: 900; easing.type: Easing.InOutQuad }
+                        NumberAnimation { to: 1.05; duration: 2000; easing.type: Easing.InOutQuad }
+                        NumberAnimation { to: 1.0; duration: 2000; easing.type: Easing.InOutQuad }
                     }
                     
                     // دائرة متوسطة
@@ -165,14 +165,52 @@ Rectangle {
                 spacing: 20
                 anchors.verticalCenter: parent.verticalCenter
                 
-                // إضافة عنوان للتسجيل
-                Text {
-                    text: "أهلاً بك مجدداً"
-                    color: "#ffffff"
-                    font.pixelSize: 24
-                    font.bold: true
+                // إضافة عنوان متحرك لمكاسب
+                Item {
+                    id: logoContainer
+                    width: parent.width
+                    height: 60
                     anchors.horizontalCenter: parent.horizontalCenter
-                    opacity: 0.9
+                    
+                    Text {
+                        id: logoText
+                        text: ""
+                        font.pixelSize: 28
+                        font.bold: true
+                        color: "#ffffff"
+                        anchors.centerIn: parent
+                        opacity: 0.9
+                        
+                        // تأثير كتابة النص تلقائياً
+                        Timer {
+                            id: typewriterTimer
+                            interval: 120
+                            running: true
+                            repeat: true
+                            property string fullText: "مكاسب | MKASB"
+                            property int currentIndex: 0
+                            
+                            onTriggered: {
+                                if (currentIndex <= fullText.length) {
+                                    logoText.text = fullText.substring(0, currentIndex);
+                                    currentIndex++;
+                                } else {
+                                    // إعادة التشغيل بعد توقف قصير
+                                    running = false;
+                                    resetTimer.start();
+                                }
+                            }
+                        }
+                        
+                        Timer {
+                            id: resetTimer
+                            interval: 3000
+                            onTriggered: {
+                                typewriterTimer.currentIndex = 0;
+                                typewriterTimer.running = true;
+                            }
+                        }
+                    }
                 }
                 
                 // إشعار Caps Lock
@@ -489,17 +527,46 @@ Rectangle {
                             messageBox.visible = false;
                             successMessage.visible = false;
                             
-                            // بعد نصف ثانية نبدأ عملية تسجيل الدخول (للتأثير البصري)
+                            // بدء مؤقت التحقق من العمليات الطويلة
+                            longOperationTimer.start();
+                            
+                            // استخدام Timer للسماح بتحديث واجهة المستخدم قبل بدء العملية
+                            loginInitTimer.start();
+                        }
+                    }
+                    
+                    // مؤقت يسمح بتحديث الواجهة قبل بدء العملية
+                    Timer {
+                        id: loginInitTimer
+                        interval: 50  // وقت قصير للسماح بتحديث الواجهة
+                        onTriggered: {
+                            // بعد تحديث الواجهة، نبدأ تأخير العرض البصري
                             loginTimer.start();
                         }
                     }
                     
-                    // مؤقت لعملية تسجيل الدخول (للعرض فقط)
+                    // مؤقت لعملية تسجيل الدخول (للتأثير البصري)
                     Timer {
                         id: loginTimer
                         interval: 500
                         onTriggered: {
-                            loginApiHandler.login(username.text, password.text);
+                            // استخدام Qt.callLater لضمان تنفيذ العملية بعد اكتمال دورة التحديث
+                            Qt.callLater(function() {
+                                loginApiHandler.login(username.text, password.text);
+                            });
+                        }
+                    }
+                }
+                
+                // مؤقت للتحقق من العمليات التي تستغرق وقتاً طويلاً
+                Timer {
+                    id: longOperationTimer
+                    interval: 10000  // 10 ثوان
+                    onTriggered: {
+                        if (loginButton.isLoading) {
+                            loginStatus.text = "يبدو أن العملية تستغرق وقتاً طويلاً، يرجى التحقق من اتصالك بالإنترنت";
+                            loginStatus.visible = true;
+                            messageBox.visible = true;
                         }
                     }
                 }
@@ -587,7 +654,7 @@ Rectangle {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 15
-        text: "© 2025 نظام إدارة العقارات"
+        text: "مكاسب الإعمار للتطوير والاستثمار العقاري © 2025 "
         color: "#555555"
         font.pixelSize: 12
     }
@@ -610,6 +677,9 @@ Rectangle {
     Connections {
         target: loginApiHandler
         function onLoginSuccess() {
+            // إيقاف مؤقت التحقق من العمليات الطويلة
+            longOperationTimer.stop();
+            
             // إظهار رسالة النجاح وعدم إيقاف التحميل
             successMessage.visible = true;
             
@@ -618,6 +688,9 @@ Rectangle {
         }
         
         function onLoginFailed(msg) {
+            // إيقاف مؤقت التحقق من العمليات الطويلة
+            longOperationTimer.stop();
+            
             loginButton.isLoading = false;
             loginStatus.text = msg;
             loginStatus.visible = true;

@@ -186,11 +186,11 @@ def api_get_owner(owner_id: int, db: Session = Depends(get_db)):
     owner, attachments = get_owner(db, owner_id, attachment_type=None)
     return owner_to_schema(owner, attachments)
 
-@app.get("/owners/", response_model=List[OwnerOut])
+@app.get("/owners/", response_model=dict)
 def api_list_owners(
     db: Session = Depends(get_db),
     page: int = Query(1, ge=1),
-    per_page: int = Query(20, le=100),
+    per_page: int = Query(50, le=200),  # زيادة العدد الأقصى للعناصر في الصفحة من 100 إلى 200
     filter_name: Optional[str] = None,
     filter_registration_number: Optional[str] = None,
     filter_nationality: Optional[str] = None,
@@ -201,9 +201,19 @@ def api_list_owners(
         filter_registration_number=filter_registration_number,
         filter_nationality=filter_nationality
     )
-    output = []
-    for o in result["data"]:
-        output.append(owner_to_schema(o))
+    
+    # حساب إجمالي عدد الصفحات
+    total_pages = (result["total"] + per_page - 1) // per_page if result["total"] > 0 else 1
+    
+    # إعداد الاستجابة بتنسيق جديد يتضمن معلومات الصفحات
+    output = {
+        "data": [owner_to_schema(o) for o in result["data"]],
+        "total": result["total"],
+        "page": page,
+        "per_page": per_page,
+        "total_pages": total_pages
+    }
+    
     return output
 
 @app.post("/owners/{owner_id}/attachments/", response_model=AttachmentInfo)

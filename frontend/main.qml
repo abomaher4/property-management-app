@@ -29,6 +29,44 @@ ApplicationWindow {
         if (typeof capsLockChecker !== 'undefined') {
             capsLockChecker.checkCapsLock();
         }
+        
+        // بدء أنيميشن الظهور عند تشغيل البرنامج
+        startupAnimation.start();
+    }
+
+    // أنيميشن ظهور البرنامج عند التشغيل
+    ParallelAnimation {
+        id: startupAnimation
+        
+        // تأثير ظهور تدريجي
+        NumberAnimation {
+            target: pageLoader
+            property: "opacity"
+            from: 0
+            to: 1
+            duration: 800
+            easing.type: Easing.OutQuad
+        }
+        
+        // تأثير حركة من الأسفل للأعلى
+        NumberAnimation {
+            target: pageLoader
+            property: "y"
+            from: 50
+            to: 0
+            duration: 800
+            easing.type: Easing.OutQuad
+        }
+        
+        // تأثير مقياس من صغير لكبير
+        NumberAnimation {
+            target: pageLoader
+            property: "scale"
+            from: 0.95
+            to: 1.0
+            duration: 800
+            easing.type: Easing.OutQuad
+        }
     }
 
     // منطقة لسحب النافذة
@@ -130,14 +168,20 @@ ApplicationWindow {
         anchors.fill: parent
         anchors.margins: 0 // ضمان عدم وجود هوامش
         source: "pages/LoginPage.qml"
+        opacity: 0 // البدء بشفافية صفر للتأثير
     }
+
+    // إشارة للتنبيه عند اكتمال الانتقال
+    signal transitionCompleted()
 
     // دوال الانتقال بين الصفحات وتعديل الأبعاد
     function goToDashboard() {
         // إظهار أنيميشن انتقالي للتلاشي
         fadeOutAnimation.target = pageLoader;
         fadeOutAnimation.to = 0;
-        fadeOutAnimation.onStopped.connect(function() {
+        
+        // استخدام دالة مجهولة واحدة فقط للتحكم بالانتقال
+        var fadeOutHandler = function() {
             // تغيير حجم النافذة
             width = 1000;
             height = 700;
@@ -155,9 +199,15 @@ ApplicationWindow {
             fadeInAnimation.to = 1;
             fadeInAnimation.start();
             
-            // فصل الاتصال لمنع التكرار
-            fadeOutAnimation.onStopped.disconnect();
-        });
+            // فصل هذه الدالة بعد استخدامها
+            fadeOutAnimation.onStopped.disconnect(fadeOutHandler);
+            
+            // إثارة الإشارة لتنبيه أي أجزاء أخرى مهتمة بالانتقال
+            transitionCompleted();
+        };
+        
+        // توصيل الدالة المجهولة
+        fadeOutAnimation.onStopped.connect(fadeOutHandler);
         fadeOutAnimation.start();
     }
 
@@ -165,7 +215,9 @@ ApplicationWindow {
         // إظهار أنيميشن انتقالي للتلاشي
         fadeOutAnimation.target = pageLoader;
         fadeOutAnimation.to = 0;
-        fadeOutAnimation.onStopped.connect(function() {
+        
+        // استخدام دالة مجهولة واحدة فقط للتحكم بالانتقال
+        var fadeOutHandler = function() {
             // تغيير حجم النافذة
             width = 800;
             height = 500;
@@ -183,9 +235,15 @@ ApplicationWindow {
             fadeInAnimation.to = 1;
             fadeInAnimation.start();
             
-            // فصل الاتصال لمنع التكرار
-            fadeOutAnimation.onStopped.disconnect();
-        });
+            // فصل هذه الدالة بعد استخدامها
+            fadeOutAnimation.onStopped.disconnect(fadeOutHandler);
+            
+            // إثارة الإشارة لتنبيه أي أجزاء أخرى مهتمة بالانتقال
+            transitionCompleted();
+        };
+        
+        // توصيل الدالة المجهولة
+        fadeOutAnimation.onStopped.connect(fadeOutHandler);
         fadeOutAnimation.start();
     }
 

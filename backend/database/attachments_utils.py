@@ -19,7 +19,8 @@ def add_attachment(
     tenant_id=None,
     contract_id=None,
     invoice_id=None,
-    notes=None
+    notes=None,
+    filename=None
 ):
     if not filepath or not filetype or not attachment_type:
         raise ValidationError("جميع الحقول الأساسية للمرفق مطلوبة")
@@ -33,7 +34,8 @@ def add_attachment(
         tenant_id=tenant_id,
         contract_id=contract_id,
         invoice_id=invoice_id,
-        notes=notes
+        notes=notes,
+        filename=filename
     )
 
     db.add(attachment)

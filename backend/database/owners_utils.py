@@ -57,7 +57,9 @@ def add_owner_with_attachments(
                 filetype=getattr(att, "filetype", ""),
                 attachment_type=attachment_type,
                 owner_id=new_owner.id,
-                notes=getattr(att, "notes", "")
+                notes=getattr(att, "notes", ""),
+                filename=getattr(att, "filename", None)
+
             )
 
     log_audit(db, user="system", action="add", table_name="owners", row_id=new_owner.id, details=f"Add: {name}")
