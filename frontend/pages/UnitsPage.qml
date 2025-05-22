@@ -1524,7 +1524,7 @@ Page {
     Connections {
         target: ownersApiHandler
         
-        function onOwnersChanged() {
+        function onDataLoaded() {
             root.ownersList = ownersApiHandler.ownersList || [];
         }
     }

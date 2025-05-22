@@ -4,6 +4,7 @@ import QtQuick.Layouts 1.15
 import Qt.labs.platform 1.1
 import Qt5Compat.GraphicalEffects
 
+
 Page {
     id: root
     background: Rectangle { color: "#f5f6fa" }
@@ -541,68 +542,118 @@ Page {
                 }
             }
 
-            // زر الإضافة (دائري بدلاً من مربع)
+
+
+            // زر الإضافة الجديد
             Button {
                 id: addBtn
-                text: "\uf067" // plus
-                font.family: fontAwesome.name
-                font.pixelSize: 14
-                Layout.preferredWidth: 50
-                Layout.preferredHeight: 50
+                Layout.preferredWidth: 40  // تم تغييرها من 50 إلى 80 لتتناسب مع زر التحديث
+                Layout.preferredHeight: 37 // تم تغييرها من 50 إلى 37 لتتناسب مع زر التحديث
                 enabled: !root.isLoading
-
-                ToolTip {
-                    text: "إضافة مالك جديد"
-                    visible: parent.hovered
-                    delay: 500
-                }
-
-                background: Rectangle {
-                    color: parent.enabled ? (parent.hovered ? "#1a9c8a" : "#3a9e74") : "#b2dfdb"
-                    radius: width / 2 // تغيير إلى دائري
-                    border.width: parent.hovered ? 2 : 1
-                    border.color: parent.enabled ? (parent.hovered ? "#00897b" : "#3a9e74") : "#b2dfdb"
-                    // تأثير الظل
-                    layer.enabled: true
-                    layer.effect: DropShadow {
-                        transparentBorder: true
-                        horizontalOffset: 0
-                        verticalOffset: 2
-                        radius: 4.0
-                        samples: 9
-                        color: "#30000000"
+                property bool isHovered: false
+                
+                
+                background: Item {}
+                
+                contentItem: Item {
+                    anchors.fill: parent
+                    
+                    Item {
+                        id: svgContainer
+                        anchors.centerIn: parent
+                        width: 37 // تعديل عرض الحاوية لتناسب الحجم الجديد
+                        height: 37 // تعديل ارتفاع الحاوية لتناسب الحجم الجديد
+                        
+                        transform: Rotation {
+                            origin.x: 18.5 // تعديل نقطة الأصل (نصف العرض)
+                            origin.y: 18.5 // تعديل نقطة الأصل (نصف الارتفاع)
+                            angle: mouseArea.containsMouse ? 90 : 0
+                            Behavior on angle {
+                                NumberAnimation {
+                                    duration: 300
+                                    easing.type: Easing.InOutQuad
+                                }
+                            }
+                        }
+                        
+                        Rectangle {
+                            id: addBtnCircle
+                            anchors.fill: parent
+                            radius: width / 2
+                            border.width: 2.5
+                            border.color: "#3a9e74"
+                            color: mouseArea.containsMouse ? Qt.rgba(0.23, 0.62, 0.46, 0.2) : "transparent"
+                            Behavior on color {
+                                ColorAnimation { duration: 300 }
+                            }
+                        }
+                        
+                        // الخط الأفقي (-)
+                        Rectangle {
+                            anchors.centerIn: parent
+                            width: 20 // تقليل العرض قليلاً
+                            height: 2.5
+                            color: "#3a9e74"
+                        }
+                        
+                        // الخط الرأسي (|)
+                        Rectangle {
+                            anchors.centerIn: parent
+                            width: 2.5
+                            height: 20 // تقليل الارتفاع قليلاً
+                            color: "#3a9e74"
+                        }
                     }
                 }
-
-                contentItem: Text {
-                    text: parent.text
-                    font: parent.font
-                    color: "white"
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
+                
+                // باقي الكود بدون تغيير
+                MouseArea {
+                    id: mouseArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    
+                    onEntered: {
+                        addBtn.isHovered = true
+                    }
+                    
+                    onExited: {
+                        addBtn.isHovered = false
+                    }
+                    
+                    onClicked: {
+                        console.log("تم الضغط على زر إضافة مالك جديد");
+                        addPopup.resetFields();
+                        addPopup.open();
+                    }
                 }
-
-                onClicked: {
-                    console.log("تم الضغط على زر إضافة مالك جديد");
-                    addPopup.resetFields();
-                    addPopup.open();
+                
+                // تأثير الظل
+                layer.enabled: true
+                layer.effect: DropShadow {
+                    transparentBorder: true
+                    horizontalOffset: 0
+                    verticalOffset: 2
+                    radius: 4.0
+                    samples: 9
+                    color: "#20000000"
                 }
             }
 
-            // زر التحديث (دائري بدلاً من مربع)
-            Button {
-                text: "\uf2f1" // arrows-rotate
-                font.family: fontAwesome.name
-                font.pixelSize: 14
-                Layout.preferredWidth: 50
-                Layout.preferredHeight: 50
-                enabled: !root.isLoading
 
-                ToolTip {
-                    text: "تحديث البيانات"
-                    visible: parent.hovered
-                    delay: 500
-                }
+
+
+
+
+
+
+            // زر التحديث البيانات
+            Button {
+                id: refreshButton
+                property bool isHovered: false  // خاصية خاصة للتحويم
+                Layout.preferredWidth: 80
+                Layout.preferredHeight: 37
+                enabled: !root.isLoading
 
                 onClicked: {
                     console.log("تم الضغط على زر التحديث");
@@ -610,30 +661,83 @@ Page {
                 }
 
                 background: Rectangle {
-                    color: parent.enabled ? (parent.hovered ? "#1565c0" : "#1976d2") : "#bbdefb"
-                    radius: width / 2 // تغيير إلى دائري
-                    border.width: parent.hovered ? 2 : 1
-                    border.color: parent.enabled ? (parent.hovered ? "#0d47a1" : "#1565c0") : "#bbdefb"
-                    // تأثير الظل
+                    id: refreshButtonBackground
+                    color: refreshButton.enabled ?
+                        (refreshButton.isHovered ? "#ffdedc" : "#ffeeed") : "#f0f0f0"
+                    radius: height / 2
+                    border.width: 0
+
                     layer.enabled: true
                     layer.effect: DropShadow {
                         transparentBorder: true
                         horizontalOffset: 0
-                        verticalOffset: 2
-                        radius: 4.0
-                        samples: 9
-                        color: "#30000000"
+                        verticalOffset: 1
+                        radius: 2.0
+                        samples: 7
+                        color: "#15000000"
                     }
                 }
 
-                contentItem: Text {
-                    text: parent.text
-                    font: parent.font
-                    color: "white"
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
+                contentItem: Row {
+                    spacing: 8
+                    anchors.centerIn: parent
+
+                    Text {
+                        id: refreshIcon
+                        text: "\uf0e2"
+                        font.family: fontAwesome.name
+                        font.pixelSize: 17
+                        color: "#ff342b"
+                        anchors.verticalCenter: parent.verticalCenter
+
+                        NumberAnimation {
+                            target: refreshIcon
+                            property: "rotation"
+                            from: 0
+                            to: -360
+                            duration: 2000
+                            loops: Animation.Infinite
+                            running: refreshButton.isHovered && refreshButton.enabled
+                            easing.type: Easing.InOutQuad
+                        }
+                    }
+
+                    Text {
+                        text: "تحديث"
+                        font.pixelSize: 13
+                        color: "#ff342b"
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    enabled: refreshButton.enabled
+                    hoverEnabled: true
+                    onClicked: refreshButton.clicked()
+                    onEntered: refreshButton.isHovered = true
+                    onExited: refreshButton.isHovered = false
+                }
+
+                // استخدم isHovered هنا
+                states: State {
+                    name: "hovered"
+                    when: refreshButton.isHovered
+                    PropertyChanges {
+                        target: refreshButtonBackground
+                        color: "#ffdedc"
+                    }
+                }
+
+                transitions: Transition {
+                    ColorAnimation { duration: 200 }
                 }
             }
+
+
+
+            
         }
 
         // معلومات عدد الملاك
@@ -656,9 +760,10 @@ Page {
             id: tableContainer
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.minimumHeight: 500
+            Layout.minimumHeight: 525
             Layout.rightMargin: 20
             Layout.leftMargin: 20
+            Layout.bottomMargin: 0
             color: "white"
             radius: 12
             border.color: "#e0e0e0"
@@ -919,27 +1024,64 @@ Page {
                         }
 
                         // زر العمليات
-                        Button {
-                            id: actionsButton
-                            text: "\uf142" // ellipsis-vertical
-                            font.family: fontAwesome.name
-                            Layout.preferredWidth: 40
-                            background: null
-                            onClicked: {
-                                var newX = actionsButton.mapToItem(root, 0, 0).x + actionsButton.width - actionMenu.width;
-                                if (newX < tableContainer.x) newX = tableContainer.x + 8;
-                                actionMenu.x = newX;
-                                actionMenu.y = actionsButton.mapToItem(root, 0, 0).y + actionsButton.height;
-                                actionMenu.owner = modelData;
-                                actionMenu.open();
+                        Item {
+                            width: 30; height: 30
+
+                            // إضافة خلفية دائرية تظهر عند التحويم
+                            Rectangle {
+                                id: hoverEffect
+                                anchors.fill: parent
+                                radius: width / 2  // جعلها دائرية
+                                color: "#9fddbc"  // لون رمادي فاتح جداً
+                                opacity: handArea.containsMouse ? 0.7 : 0  // شفافية تتغير حسب التحويم
+                                
+                                // إضافة تأثير انتقالي ناعم للشفافية
+                                Behavior on opacity {
+                                    NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+                                }
                             }
 
-                            ToolTip {
-                                text: "خيارات"
-                                visible: parent.hovered
-                                delay: 500
+                            MouseArea {
+                                id: handArea
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                hoverEnabled: true  // تفعيل خاصية التحويم
+                                onClicked: {
+                                    var newX = parent.mapToItem(root, 0, 0).x + parent.width - actionMenu.width;
+                                    if (newX < tableContainer.x) newX = tableContainer.x + 8;
+                                    actionMenu.x = newX;
+                                    actionMenu.y = parent.mapToItem(root, 0, 0).y + parent.height;
+                                    actionMenu.owner = modelData;
+                                    actionMenu.open();
+                                }
                             }
+
+                            Text {
+                                id: iconText
+                                anchors.centerIn: parent
+                                text: "\uf142"
+                                font.family: fontAwesome.name
+                                font.pixelSize: 17
+                                color: handArea.containsMouse ? "#4B5563" : "#6B7280"  // لون قليلاً أغمق عند التحويم
+                                
+                                // إضافة تأثير انتقالي ناعم للون
+                                Behavior on color {
+                                    ColorAnimation { duration: 200 }
+                                }
+                            }
+
                         }
+
+
+
+
+
+
+
+
+
+
+
                     }
 
                     // تفاعل المستخدم
@@ -964,102 +1106,313 @@ Page {
             Layout.fillWidth: true
             Layout.rightMargin: 20
             Layout.leftMargin: 20
-            Layout.bottomMargin: 20
+            Layout.bottomMargin: 25
+            Layout.topMargin: 0
+            spacing: 15
             
-            Label {
-                text: "الصفوف في الصفحة:"
-                font.pixelSize: 14
-                color: "#555"
-            }
-            
+            // عدد الصفوف (نص) ثم ComboBox
             ComboBox {
                 id: perPageCombo
+                implicitWidth: 45
+                Layout.preferredWidth: 45
+                height: 36
                 model: [25, 50, 100, 200]
-                currentIndex: 0 // افتراضياً 25 عنصر
-                Layout.preferredWidth: 80
+                currentIndex: 0
+                
+                property bool isHovered: comboHoverArea.containsMouse
+                
+                // تأثير زر الاختيار
+                background: Rectangle {
+                    id: comboBackground
+                    color: perPageCombo.isHovered ? "#f9f9f9" : "white"
+                    radius: 6
+                    border.color: perPageCombo.isHovered || perPageCombo.activeFocus ? "#3a9e74" : "#e0e0e0"
+                    border.width: perPageCombo.activeFocus ? 2 : 1
+                    
+                    // إضافة تأثير انتقالي عند التحويم
+                    Behavior on color { ColorAnimation { duration: 150 } }
+                    Behavior on border.color { ColorAnimation { duration: 150 } }
+                    Behavior on border.width { NumberAnimation { duration: 150 } }
+                }
+                
+                contentItem: Text {
+                    leftPadding: 5
+                    rightPadding: 18
+                    text: perPageCombo.displayText
+                    font.pixelSize: 14
+                    color: perPageCombo.isHovered ? "#333" : "#555"
+                    verticalAlignment: Text.AlignVCenter
+                    
+                    // إضافة تأثير انتقالي للون النص
+                    Behavior on color { ColorAnimation { duration: 150 } }
+                }
+                
+                indicator: Rectangle {
+                    x: parent.width - width
+                    y: (parent.height - height) / 2
+                    width: 18
+                    height: parent.height
+                    color: "transparent"
+                    
+                    Text {
+                        id: dropdownIcon
+                        text: "\uf0d7" // caret-down
+                        font.family: fontAwesome.name
+                        font.pixelSize: 12
+                        color: perPageCombo.isHovered ? "#3a9e74" : "#555"
+                        anchors.centerIn: parent
+                        
+                        // إضافة تأثير انتقالي للون الأيقونة
+                        Behavior on color { ColorAnimation { duration: 150 } }
+                        
+                        // إضافة تأثير حركة للأيقونة عند التحويم
+                        Behavior on y { NumberAnimation { duration: 150 } }
+                        
+                        // تحريك السهم قليلاً للأسفل عند التحويم
+                        y: perPageCombo.isHovered ? 1 : 0
+                    }
+                }
+                
+                // إضافة MouseArea خاص لتتبع حالة التحويم بدقة
+                MouseArea {
+                    id: comboHoverArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    acceptedButtons: Qt.NoButton  // لا يستقبل نقرات
+                    propagateComposedEvents: true  // يمكن للمؤشر أن يمر من خلاله للوصول إلى الـ ComboBox
+                }
+                
+                popup: Popup {
+                    y: perPageCombo.height
+                    width: perPageCombo.width
+                    padding: 2
+                    
+                    contentItem: ListView {
+                        clip: true
+                        implicitHeight: contentHeight
+                        model: perPageCombo.popup.visible ? perPageCombo.delegateModel : null
+                        
+                        ScrollBar.vertical: ScrollBar {
+                            active: perPageCombo.popup.visible
+                        }
+                    }
+                    
+                    background: Rectangle {
+                        border.color: "#e0e0e0"
+                        border.width: 1
+                        radius: 6
+                        color: "white"
+                    }
+                }
+                
                 onCurrentTextChanged: {
                     if (currentText !== "" && root.apiReady && typeof ownersApiHandler !== "undefined") {
                         ownersApiHandler.set_per_page(parseInt(currentText))
+                        // إضافة هذا السطر مباشرة لتحديث البيانات
+                        root.filterOwners()
                     }
                 }
             }
-            
+
             Label {
-                text: {
-                    if (!root.apiReady || typeof ownersApiHandler === "undefined") return "0 من 0";
-                    if (filteredOwners.length === 0) return "0 من 0";
-                    
-                    const start = (ownersApiHandler.currentPage - 1) * ownersApiHandler.perPage + 1;
-                    const end = Math.min(start + filteredOwners.length - 1, ownersApiHandler.totalItems);
-                    return start + "-" + end + " من " + ownersApiHandler.totalItems;
-                }
+                text: "عدد الصفوف:"
                 font.pixelSize: 14
                 color: "#555"
+            }
+            
+            // معلومات الصفحات والسجلات - تم تغييرها لتكون أفقية بدلاً من عمودية
+            Item {
                 Layout.fillWidth: true
-                horizontalAlignment: Text.AlignLeft
+                height: 36
+                
+                RowLayout {
+                    anchors.centerIn: parent
+                    spacing: 10
+                    
+                    Label {
+                        text: root.apiReady && typeof ownersApiHandler !== "undefined" ?
+                            "صفحة " + ownersApiHandler.currentPage + " من " + ownersApiHandler.totalPages :
+                            "صفحة 1 من 1"
+                        font.pixelSize: 14
+                        color: "#777"
+                        Layout.alignment: Qt.AlignVCenter
+                    }
+                    
+                    Label {
+                        text: "•"
+                        font.pixelSize: 14
+                        color: "#ccc"
+                        Layout.alignment: Qt.AlignVCenter
+                    }
+                    
+                    Label {
+                        text: {
+                            if (!root.apiReady || typeof ownersApiHandler === "undefined") return "0 من 0";
+                            if (filteredOwners.length === 0) return "0 من 0";
+                            const start = (ownersApiHandler.currentPage - 1) * ownersApiHandler.perPage + 1;
+                            const end = Math.min(start + filteredOwners.length - 1, ownersApiHandler.totalItems);
+                            return start + "-" + end + " من " + ownersApiHandler.totalItems;
+                        }
+                        font.pixelSize: 14
+                        color: "#555"
+                        Layout.alignment: Qt.AlignVCenter
+                    }
+                }
             }
             
-            Label {
-                text: root.apiReady && typeof ownersApiHandler !== "undefined" ? 
-                     "صفحة " + ownersApiHandler.currentPage + " من " + ownersApiHandler.totalPages :
-                     "صفحة 1 من 1"
-                font.pixelSize: 14
-                color: "#555"
-            }
-            
-            Button {
-                text: "السابق"
-                Layout.preferredWidth: 100
-                enabled: root.apiReady && typeof ownersApiHandler !== "undefined" && ownersApiHandler.currentPage > 1
-                contentItem: RowLayout {
+            // أزرار التنقل بين الصفحات (فقط السابق والتالي)
+            Row {
+                spacing: 8
+                Layout.alignment: Qt.AlignRight
+                
+                // الصفحة السابقة
+                Rectangle {
+                    id: prevButton
+                    width: 36
+                    height: 36
+                    radius: 18
+                    
+                    // تأثيرات التحويم المضافة
+                    property bool isEnabled: root.apiReady && typeof ownersApiHandler !== "undefined" && ownersApiHandler.currentPage > 1
+                    property bool isHovered: false
+                    
+                    color: {
+                        if (!isEnabled) return "#f0f0f0";
+                        if (isHovered) return "#e8f5f0";
+                        return "#f5f5f5";
+                    }
+                    
+                    border.color: isHovered && isEnabled ? "#3a9e74" : "#e0e0e0"
+                    border.width: isHovered && isEnabled ? 2 : 1
+                    opacity: isEnabled ? 1 : 0.5
+                    
+                    // إضافة تأثيرات انتقالية
+                    Behavior on color { ColorAnimation { duration: 150 } }
+                    Behavior on border.color { ColorAnimation { duration: 150 } }
+                    Behavior on border.width { NumberAnimation { duration: 150 } }
+                    
                     Text {
-                        text: "\uf053" // chevron-left
+                        id: prevIcon
+                        text: "\uf104" // angle-left
                         font.family: fontAwesome.name
-                        color: parent.parent.enabled ? "#333" : "#999"
-                        Layout.alignment: Qt.AlignVCenter
+                        font.pixelSize: 16
+                        color: prevButton.isHovered && prevButton.isEnabled ? "#3a9e74" : "#555"
+                        anchors.centerIn: parent
+                        
+                        // إضافة تأثير انتقالي للون وحجم الأيقونة
+                        Behavior on color { ColorAnimation { duration: 150 } }
+                        Behavior on font.pixelSize { NumberAnimation { duration: 150 } }
+                        
+                        // تكبير الأيقونة عند التحويم
+                        font.pixelSize: prevButton.isHovered && prevButton.isEnabled ? 18 : 16
                     }
-                    Text {
-                        text: "السابق"
-                        color: parent.parent.enabled ? "#333" : "#999"
-                        Layout.alignment: Qt.AlignVCenter
-                        Layout.fillWidth: true
-                        horizontalAlignment: Text.AlignHCenter
+                    
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: parent.isEnabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                        enabled: parent.isEnabled
+                        hoverEnabled: true
+                        
+                        onEntered: prevButton.isHovered = true
+                        onExited: prevButton.isHovered = false
+                        
+                        onClicked: {
+                            if (root.apiReady && typeof ownersApiHandler !== "undefined") {
+                                ownersApiHandler.previous_page();
+                            }
+                        }
                     }
                 }
-                onClicked: {
-                    if (root.apiReady && typeof ownersApiHandler !== "undefined") {
-                        ownersApiHandler.previous_page();
+                
+                // الصفحة الحالية - دائرة خضراء
+                Rectangle {
+                    width: 36
+                    height: 36
+                    radius: 18
+                    color: "#3a9e74"
+                    
+                    Text {
+                        text: root.apiReady && typeof ownersApiHandler !== "undefined" ? 
+                            ownersApiHandler.currentPage : "1"
+                        font.pixelSize: 14
+                        font.bold: true
+                        color: "white"
+                        anchors.centerIn: parent
                     }
                 }
-            }
-            
-            Button {
-                text: "التالي"
-                Layout.preferredWidth: 100
-                enabled: root.apiReady && typeof ownersApiHandler !== "undefined" && 
-                         ownersApiHandler.currentPage < ownersApiHandler.totalPages
-                contentItem: RowLayout {
-                    Text {
-                        text: "التالي"
-                        color: parent.parent.enabled ? "#333" : "#999"
-                        Layout.alignment: Qt.AlignVCenter
-                        Layout.fillWidth: true
-                        horizontalAlignment: Text.AlignHCenter
+                
+                // الصفحة التالية
+                Rectangle {
+                    id: nextButton
+                    width: 36
+                    height: 36
+                    radius: 18
+                    
+                    // تأثيرات التحويم المضافة
+                    property bool isEnabled: root.apiReady && typeof ownersApiHandler !== "undefined" && 
+                        ownersApiHandler.currentPage < ownersApiHandler.totalPages
+                    property bool isHovered: false
+                    
+                    color: {
+                        if (!isEnabled) return "#f0f0f0";
+                        if (isHovered) return "#e8f5f0";
+                        return "#f5f5f5";
                     }
+                    
+                    border.color: isHovered && isEnabled ? "#3a9e74" : "#e0e0e0"
+                    border.width: isHovered && isEnabled ? 2 : 1
+                    opacity: isEnabled ? 1 : 0.5
+                    
+                    // إضافة تأثيرات انتقالية
+                    Behavior on color { ColorAnimation { duration: 150 } }
+                    Behavior on border.color { ColorAnimation { duration: 150 } }
+                    Behavior on border.width { NumberAnimation { duration: 150 } }
+                    
                     Text {
-                        text: "\uf054" // chevron-right
+                        id: nextIcon
+                        text: "\uf105" // angle-right
                         font.family: fontAwesome.name
-                        color: parent.parent.enabled ? "#333" : "#999"
-                        Layout.alignment: Qt.AlignVCenter
+                        font.pixelSize: 16
+                        color: nextButton.isHovered && nextButton.isEnabled ? "#3a9e74" : "#555"
+                        anchors.centerIn: parent
+                        
+                        // إضافة تأثير انتقالي للون وحجم الأيقونة
+                        Behavior on color { ColorAnimation { duration: 150 } }
+                        Behavior on font.pixelSize { NumberAnimation { duration: 150 } }
+                        
+                        // تكبير الأيقونة عند التحويم
+                        font.pixelSize: nextButton.isHovered && nextButton.isEnabled ? 18 : 16
                     }
-                }
-                onClicked: {
-                    if (root.apiReady && typeof ownersApiHandler !== "undefined") {
-                        ownersApiHandler.next_page()
+                    
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: parent.isEnabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                        enabled: parent.isEnabled
+                        hoverEnabled: true
+                        
+                        onEntered: nextButton.isHovered = true
+                        onExited: nextButton.isHovered = false
+                        
+                        onClicked: {
+                            if (root.apiReady && typeof ownersApiHandler !== "undefined") {
+                                ownersApiHandler.next_page();
+                            }
+                        }
                     }
                 }
             }
         }
+
+
+
+
+
+
+
+
+
+
+
 
         // قائمة الإجراءات
         Popup {
@@ -1102,6 +1455,7 @@ Page {
                         id: detailsArea
                         anchors.fill: parent
                         hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
                         onClicked: {
                             showOwnerDetails(actionMenu.owner);
                             actionMenu.close();
@@ -1146,6 +1500,7 @@ Page {
                         id: editArea
                         anchors.fill: parent
                         hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
                         onClicked: {
                             editPopup.setOwner(actionMenu.owner);
                             editPopup.open();
@@ -1191,6 +1546,7 @@ Page {
                         id: deleteArea
                         anchors.fill: parent
                         hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
                         onClicked: {
                             deletePopup.ownerId = actionMenu.owner.id;
                             deletePopup.ownerName = actionMenu.owner.name;
@@ -1223,6 +1579,30 @@ Page {
         }
 
         // ========== النوافذ المنبثقة ==========
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         // نافذة الإضافة
         Popup {
@@ -1318,11 +1698,7 @@ Page {
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                         }
-                        ToolTip {
-                            text: "إغلاق"
-                            visible: parent.hovered
-                            delay: 300
-                        }
+
                     }
                 }
 
@@ -1516,40 +1892,167 @@ Page {
                     
                     // زر إضافة صورة الهوية
                     Button {
-                        text: "\uf302" // pen-clip
-                        font.family: fontAwesome.name
-                        font.pixelSize: 14
+                        id: fileButton
                         Layout.alignment: Qt.AlignHCenter
+                        
                         contentItem: RowLayout {
-                            spacing: 8
-                            Text {
-                                text: parent.parent.text
-                                font.family: fontAwesome.name
-                                color: "#1976d2"
+                            spacing: 12
+                            
+                            // رمز الملف مع علامة +
+                            Item {
+                                width: 20
+                                height: 20
+                                
+                                Canvas {
+                                    anchors.fill: parent
+                                    onPaint: {
+                                        var ctx = getContext("2d");
+                                        ctx.reset();
+                                        
+                                        // رسم المستند
+                                        ctx.strokeStyle = "#ffffff";
+                                        ctx.lineWidth = 2;
+                                        
+                                        // المستند الأساسي
+                                        ctx.beginPath();
+                                        ctx.moveTo(5, 3);
+                                        ctx.lineTo(13.5, 3);
+                                        ctx.lineTo(19, 8.625);
+                                        ctx.lineTo(19, 11.8);
+                                        ctx.lineTo(11, 11.8);
+                                        ctx.lineTo(11, 21);
+                                        ctx.lineTo(8, 21);
+                                        ctx.lineTo(5, 21);
+                                        ctx.lineTo(5, 3);
+                                        ctx.stroke();
+                                        
+                                        // الطية العلوية
+                                        ctx.beginPath();
+                                        ctx.moveTo(13.5, 3);
+                                        ctx.lineTo(13.5, 8.625);
+                                        ctx.lineTo(19, 8.625);
+                                        ctx.stroke();
+                                        
+                                        // علامة +
+                                        ctx.beginPath();
+                                        ctx.moveTo(17, 15);
+                                        ctx.lineTo(17, 21);
+                                        ctx.moveTo(14, 18);
+                                        ctx.lineTo(20, 18);
+                                        ctx.stroke();
+                                    }
+                                }
                             }
+                            
+                            // نص الزر
                             Text {
-                                text: "اختيار صورة الهوية"
-                                color: "#1976d2"
+                                text: "إضافة صورة الهوية"
+                                color: "#ffffff"
+                                font.pixelSize: 12
+                                font.bold: true
                             }
                         }
+                        
                         background: Rectangle {
-                            color: parent.hovered ? "#bbdefb" : "#e3f2fd"
-                            radius: 4
-                            border.color: "#90caf9"
-                            implicitWidth: 150
-                            implicitHeight: 40
+                            color: fileButton.pressed ? "#3a75c7" : 
+                                fileButton.hovered ? "#5799f3" : "#488aec"
+                            radius: 8
+                            
+                            // تأثير الظل
+                            layer.enabled: true
+                            layer.effect: DropShadow {
+                                horizontalOffset: 0
+                                verticalOffset: fileButton.hovered ? 6 : 3
+                                radius: fileButton.hovered ? 12 : 6
+                                samples: 17
+                                color: "#488aec31"
+                            }
                         }
+                        
+                        // مقاسات الزر
+                        implicitWidth: 140
+                        implicitHeight: 40
+                        
+                        // تغيير شكل المؤشر عند التحويم
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            hoverEnabled: true
+                            onPressed: function(mouse) {
+                                mouse.accepted = false; // يسمح بتمرير الحدث للزر الأصلي
+                            }
+                        }
+                        
+                        // حدث النقر
                         onClicked: identityDialog.open()
                     }
-                    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                     // عدد المرفقات المحددة
-                    Label {
-                        text: root.currentIdentityAttachment ? "تم تحديد صورة الهوية: " + root.currentIdentityAttachment.filename : "لم يتم تحديد صورة الهوية"
-                        font.pixelSize: 14
-                        color: root.currentIdentityAttachment ? "#388e3c" : "#999"
+                    RowLayout {
                         Layout.alignment: Qt.AlignHCenter
+                        spacing: 5
+                        visible: root.currentIdentityAttachment !== null
+                        
+                        Label {
+                            text: root.currentIdentityAttachment ? "تم تحديد صورة الهوية: " + root.currentIdentityAttachment.filename : "لم يتم تحديد صورة الهوية"
+                            font.pixelSize: 14
+                            color: "#388e3c"
+                        }
+                        
+                        // زر الحذف - إلغاء المرفق
+                        Rectangle {
+                            width: 20
+                            height: 20
+                            radius: 10
+                            color: removeMouseArea.containsMouse ? "#ff5252" : "#f44336"
+                            
+                            Text {
+                                anchors.centerIn: parent
+                                text: "\uf00d"  // رمز X في Font Awesome
+                                font.family: fontAwesome.name
+                                font.pixelSize: 12
+                                color: "white"
+                            }
+                            
+                            MouseArea {
+                                id: removeMouseArea
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                
+                                onClicked: {
+                                    root.currentIdentityAttachment = null
+                                    // إذا كنت تستخدم مصفوفة للمرفقات يمكنك إضافة الكود المناسب لإزالة المرفق منها هنا
+                                }
+                                
+                            }
+                        }
                     }
-                    
+
+                    // نضيف Label منفصل ليظهر عندما لا توجد مرفقات
+                    Label {
+                        text: "لم يتم تحديد صورة الهوية"
+                        font.pixelSize: 14
+                        color: "#999"
+                        Layout.alignment: Qt.AlignHCenter
+                        visible: root.currentIdentityAttachment === null
+                    }
+
+                       
+
                     // خط فاصل
                     Rectangle {
                         Layout.fillWidth: true
@@ -1557,46 +2060,143 @@ Page {
                         color: "#e0e0e0"
                     }
                     
+
                     // أزرار الحفظ والإلغاء
                     RowLayout {
                         spacing: 20
                         Layout.alignment: Qt.AlignHCenter
                         
+
                         // زر الإلغاء
                         Button {
-                            text: "إلغاء"
-                            Layout.preferredWidth: 120
-                            Layout.preferredHeight: 40
+                            id: cancelButton
+                            Layout.preferredWidth: 100
+                            Layout.preferredHeight: 30
+                            
+                            // تأثير الضغط
+                            property bool isPressed: false
+                            
+                            // الحفاظ على وظيفة الزر الأصلية
                             onClicked: addPopup.close()
+                            
                             background: Rectangle {
-                                color: parent.hovered ? "#e0e0e0" : "#f5f5f5"
-                                radius: 6
-                                border.color: "#bdbdbd"
-                            }
-                            contentItem: RowLayout {
-                                spacing: 8
-                                Text {
-                                    text: "\uf00d" // xmark
-                                    font.family: fontAwesome.name
-                                    color: "#555"
+                                id: cancelBg
+                                anchors.fill: parent
+                                color: cancelButton.isPressed ? "#f0f0f0" : 
+                                    cancelButton.hovered ? "#f8f8f8" : "#ffffff"
+                                radius: 25
+                                border.width: 1.5
+                                border.color: "#e57373"
+                                
+                                // تأثير التوهج
+                                Rectangle {
+                                    id: glowEffect
+                                    anchors.centerIn: parent
+                                    width: parent.width - 4
+                                    height: parent.height - 4
+                                    radius: parent.radius - 2
+                                    color: "transparent"
+                                    border.width: 2
+                                    border.color: "#ffcdd2"
+                                    opacity: cancelButton.hovered ? 0.7 : 0
+                                    
+                                    Behavior on opacity {
+                                        NumberAnimation { duration: 200 }
+                                    }
                                 }
+                                
+                                // تأثير الظل
+                                layer.enabled: true
+                                layer.effect: DropShadow {
+                                    transparentBorder: true
+                                    horizontalOffset: 0
+                                    verticalOffset: cancelButton.isPressed ? 1 : 3
+                                    radius: cancelButton.isPressed ? 3.0 : 5.0
+                                    samples: 17
+                                    color: "#30000000"
+                                }
+                                
+                                // تأثير الانتقال للضغط
+                                Behavior on y {
+                                    NumberAnimation { duration: 100 }
+                                }
+                            }
+                            
+                            // محتوى الزر
+                            contentItem: RowLayout {
+                                spacing: 12
+                                anchors.centerIn: parent
+                                
+                                // أيقونة الإلغاء (X) بداخل دائرة
+                                Rectangle {
+                                    id: iconCircle
+                                    width: 20
+                                    height: 20
+                                    radius: 10
+                                    color: "#fee8e7"
+                                    
+                                    Text {
+                                        text: "\uf00d" // أيقونة X من FontAwesome
+                                        font.family: fontAwesome.name
+                                        font.pixelSize: 10
+                                        color: "#e53935"
+                                        anchors.centerIn: parent
+                                    }
+                                    
+                                    // تأثير التدوير البسيط عند التحويم
+                                    RotationAnimation {
+                                        target: iconCircle
+                                        from: 0
+                                        to: 360
+                                        duration: 500
+                                        running: cancelButton.hovered
+                                    }
+                                }
+                                
+                                // نص الزر
                                 Text {
                                     text: "إلغاء"
-                                    font.pixelSize: 14
-                                    color: "#555"
-                                    horizontalAlignment: Text.AlignHCenter
-                                    verticalAlignment: Text.AlignVCenter
-                                    Layout.fillWidth: true
+                                    font.pixelSize: 13
+                                    font.bold: true
+                                    color: "#d32f2f"
                                 }
                             }
+                            
+                            // تعامل مع تفاعلات المستخدم
+                            MouseArea {
+                                id: mouseArea1
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                
+                                // تغيير حالة الضغط
+                                onPressed: {
+                                    cancelButton.isPressed = true
+                                    cancelBg.y = 2
+                                }
+                                
+                                onReleased: {
+                                    cancelButton.isPressed = false
+                                    cancelBg.y = 0
+                                }
+                                
+                                // تمرير الإشارة للزر الأصلي
+                                onClicked: cancelButton.clicked()
+                            }
                         }
+
+
+
+
                         
                         // زر الحفظ
                         Button {
-                            text: "حفظ"
-                            Layout.preferredWidth: 120
-                            Layout.preferredHeight: 40
+                            id: saveButton
+                            Layout.preferredWidth: 100
+                            Layout.preferredHeight: 30
                             enabled: addPopup.isFormValid
+                            
+                            // الحفاظ على الدالة الأصلية للحفظ
                             onClicked: {
                                 console.log("محاولة إضافة مالك جديد");
                                 var attachments = [];
@@ -1615,41 +2215,167 @@ Page {
                                 );
                                 addPopup.close();
                             }
+                            
+                            // تصميم الخلفية
                             background: Rectangle {
-                                color: parent.enabled ? (parent.hovered ? "#1a9c8a" : "#3a9e74") : "#b2dfdb"
-                                radius: 6
-                                // تأثير الظل
-                                layer.enabled: true
+                                id: buttonBackground
+                                anchors.fill: parent
+                                color: saveButton.hovered && saveButton.enabled ? "#3a9e74" : "transparent"
+                                radius: 11
+                                border.width: 2
+                                border.color: saveButton.enabled ? "#3a9e74" : "#3a9e74"
+                                
+                                // انتقال سلس عند التغيير
+                                Behavior on color {
+                                    ColorAnimation { 
+                                        duration: 300
+                                        easing.type: Easing.OutQuad
+                                    }
+                                }
+                                
+                                // تأثير النقر
+                                scale: saveButton.pressed ? 0.97 : 1.0
+                                Behavior on scale {
+                                    NumberAnimation {
+                                        duration: 150
+                                        easing.type: Easing.OutQuad
+                                    }
+                                }
+                                
+                                // تأثير الظل - تحسين جديد
+                                layer.enabled: saveButton.enabled
                                 layer.effect: DropShadow {
                                     transparentBorder: true
                                     horizontalOffset: 0
-                                    verticalOffset: 2
-                                    radius: 4.0
-                                    samples: 9
-                                    color: "#30000000"
+                                    verticalOffset: saveButton.hovered ? 3 : 1
+                                    radius: saveButton.hovered ? 6.0 : 3.0
+                                    samples: 11
+                                    color: "#403654ff"
+                                    Behavior on horizontalOffset { NumberAnimation { duration: 300 } }
+                                    Behavior on verticalOffset { NumberAnimation { duration: 300 } }
+                                    Behavior on radius { NumberAnimation { duration: 300 } }
                                 }
                             }
-                            contentItem: RowLayout {
-                                spacing: 8
-                                Text {
-                                    text: "\uf0c7" // floppy-disk
-                                    font.family: fontAwesome.name
-                                    color: "white"
+                            
+                            // محتوى الزر
+                            contentItem: Item {
+                                anchors.fill: parent
+                                
+                                // السهم - متموضع على اليمين (للغة العربية)
+                                Item {
+                                    id: arrowContainer
+                                    width: 24
+                                    height: 24
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    anchors.right: parent.right
+                                    anchors.rightMargin: 15
+                                    
+                                    // رسم السهم باستخدام Canvas
+                                    Canvas {
+                                        id: arrowCanvas
+                                        anchors.fill: parent
+                                        
+                                        onPaint: {
+                                            var ctx = getContext("2d");
+                                            ctx.reset();
+                                            
+                                            // خصائص الخط
+                                            ctx.strokeStyle = saveButton.hovered && saveButton.enabled ? "white" : (saveButton.enabled ? "#3a9e74" : "#4fc492");
+                                            ctx.lineWidth = 2;
+                                            ctx.lineCap = "round";
+                                            ctx.lineJoin = "round";
+                                            
+                                            // رسم الخط الأفقي
+                                            ctx.beginPath();
+                                            ctx.moveTo(4.5, 12);
+                                            ctx.lineTo(19.5, 12);
+                                            ctx.stroke();
+                                            
+                                            // رسم السهم العلوي
+                                            ctx.beginPath();
+                                            ctx.moveTo(19.5, 12);
+                                            ctx.lineTo(12.75, 5.25);
+                                            ctx.stroke();
+                                            
+                                            // رسم السهم السفلي
+                                            ctx.beginPath();
+                                            ctx.moveTo(19.5, 12);
+                                            ctx.lineTo(12.75, 18.75);
+                                            ctx.stroke();
+                                        }
+                                        
+                                        // إعادة الرسم عند تغير الألوان
+                                        Timer {
+                                            running: true
+                                            repeat: true
+                                            interval: 100
+                                            onTriggered: arrowCanvas.requestPaint()
+                                        }
+                                    }
+                                    
+                                    // تأثير حركة السهم - تحسين للحركة
+                                    transform: Translate {
+                                        x: saveButton.hovered && saveButton.enabled ? 5 : 0
+                                        Behavior on x {
+                                            NumberAnimation { 
+                                                duration: 600
+                                                easing.type: Easing.OutBack
+                                            }
+                                        }
+                                    }
                                 }
+                                
+                                // النص - متموضع على اليسار (للغة العربية)
                                 Text {
                                     text: "حفظ"
-                                    font.pixelSize: 14
-                                    color: "white"
-                                    horizontalAlignment: Text.AlignHCenter
-                                    verticalAlignment: Text.AlignVCenter
-                                    Layout.fillWidth: true
+                                    color: saveButton.hovered && saveButton.enabled ? "white" : (saveButton.enabled ? "#3a9e74" : "#4fc492")
+                                    font.pixelSize: 13
+                                    font.bold: true
+                                    font.letterSpacing: 0.5
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    anchors.left: parent.left
+                                    anchors.leftMargin: 24
+                                    
+                                    // انتقال سلس للون
+                                    Behavior on color {
+                                        ColorAnimation { duration: 600 }
+                                    }
                                 }
                             }
+                            
+                            // MouseArea مبسطة بدون تأثير الموجة
+                            MouseArea {
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: saveButton.enabled ? Qt.PointingHandCursor : Qt.ForbiddenCursor
+                                
+                                onClicked: {
+                                    if (saveButton.enabled) {
+                                        saveButton.clicked();
+                                    }
+                                }
+                            }
+                            
+                            // تأثير التعطيل
+                            opacity: enabled ? 1.0 : 0.7
                         }
+
+
                     }
                 }
             }
         }
+
+
+
+
+
+
+
+
+
+
+        
 
         // نافذة التعديل
         Popup {
@@ -1753,11 +2479,7 @@ Page {
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                         }
-                        ToolTip {
-                            text: "إغلاق"
-                            visible: parent.hovered
-                            delay: 300
-                        }
+
                     }
                 }
 
@@ -1787,6 +2509,9 @@ Page {
                         }
                     }
 
+
+
+                    // here
                     GridLayout {
                         width: parent.width
                         columns: 2
@@ -1945,6 +2670,12 @@ Page {
                             Layout.columnSpan: 2
                         }
                     }
+
+
+
+
+
+
                 }
 
                 // أزرار الإلغاء والحفظ
@@ -1952,47 +2683,146 @@ Page {
                     spacing: 20
                     Layout.alignment: Qt.AlignHCenter
                     
-                    // زر الإلغاء
+
+
+
+                    
+                    // زر الإلغاء في نافذة التعديل (تحديث)
                     Button {
-                        text: "إلغاء"
-                        Layout.preferredWidth: 120
-                        Layout.preferredHeight: 40
+                        id: editCancelButton
+                        Layout.preferredWidth: 100
+                        Layout.preferredHeight: 30
+                        
+                        // تأثير الضغط
+                        property bool isPressed: false
+                        
+                        // الحفاظ على وظيفة الزر الأصلية
                         onClicked: editPopup.close()
+                        
                         background: Rectangle {
-                            color: parent.hovered ? "#e0e0e0" : "#f5f5f5"
-                            radius: 6
-                            border.color: "#bdbdbd"
-                        }
-                        contentItem: RowLayout {
-                            spacing: 8
-                            Text {
-                                text: "\uf00d" // xmark
-                                font.family: fontAwesome.name
-                                color: "#555"
+                            id: editCancelBg
+                            anchors.fill: parent
+                            color: editCancelButton.isPressed ? "#f0f0f0" : 
+                                editCancelButton.hovered ? "#f8f8f8" : "#ffffff"
+                            radius: 25
+                            border.width: 1.5
+                            border.color: "#e57373"
+                            
+                            // تأثير التوهج
+                            Rectangle {
+                                id: editGlowEffect
+                                anchors.centerIn: parent
+                                width: parent.width - 4
+                                height: parent.height - 4
+                                radius: parent.radius - 2
+                                color: "transparent"
+                                border.width: 2
+                                border.color: "#ffcdd2"
+                                opacity: editCancelButton.hovered ? 0.7 : 0
+                                
+                                Behavior on opacity {
+                                    NumberAnimation { duration: 200 }
+                                }
                             }
+                            
+                            // تأثير الظل
+                            layer.enabled: true
+                            layer.effect: DropShadow {
+                                transparentBorder: true
+                                horizontalOffset: 0
+                                verticalOffset: editCancelButton.isPressed ? 1 : 3
+                                radius: editCancelButton.isPressed ? 3.0 : 5.0
+                                samples: 17
+                                color: "#30000000"
+                            }
+                            
+                            // تأثير الانتقال للضغط
+                            Behavior on y {
+                                NumberAnimation { duration: 100 }
+                            }
+                        }
+                        
+                        // محتوى الزر
+                        contentItem: RowLayout {
+                            spacing: 12
+                            anchors.centerIn: parent
+                            
+                            // أيقونة الإلغاء (X) بداخل دائرة
+                            Rectangle {
+                                id: editIconCircle
+                                width: 20
+                                height: 20
+                                radius: 10
+                                color: "#fee8e7"
+                                
+                                Text {
+                                    text: "\uf00d" // أيقونة X من FontAwesome
+                                    font.family: fontAwesome.name
+                                    font.pixelSize: 16
+                                    color: "#e53935"
+                                    anchors.centerIn: parent
+                                }
+                                
+                                // تأثير التدوير البسيط عند التحويم
+                                RotationAnimation {
+                                    target: editIconCircle
+                                    from: 0
+                                    to: 360
+                                    duration: 500
+                                    running: editCancelButton.hovered
+                                }
+                            }
+                            
+                            // نص الزر
                             Text {
                                 text: "إلغاء"
-                                font.pixelSize: 14
-                                color: "#555"
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                                Layout.fillWidth: true
+                                font.pixelSize: 13
+                                font.bold: true
+                                color: "#d32f2f"
                             }
                         }
+                        
+                        // تعامل مع تفاعلات المستخدم
+                        MouseArea {
+                            id: editMouseArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            
+                            // تغيير حالة الضغط
+                            onPressed: {
+                                editCancelButton.isPressed = true
+                                editCancelBg.y = 2
+                            }
+                            
+                            onReleased: {
+                                editCancelButton.isPressed = false
+                                editCancelBg.y = 0
+                            }
+                            
+                            // تمرير الإشارة للزر الأصلي
+                            onClicked: editCancelButton.clicked()
+                        }
                     }
+
+
+
                     
-                    // زر الحفظ
+                    // زر الحفظ في نافذة التعديل (مطابق لزر الحفظ في نافذة الإضافة)
                     Button {
-                        text: "حفظ التعديلات"
-                        Layout.preferredWidth: 140
-                        Layout.preferredHeight: 40
+                        id: editSaveButton
+                        Layout.preferredWidth: 100
+                        Layout.preferredHeight: 30
                         enabled: editPopup.isFormValid
+                        
+                        // الحفاظ على الدالة الأصلية للحفظ
                         onClicked: {
                             console.log("محاولة تعديل المالك #" + editPopup.ownerData.id);
                             var attachments = [];
                             if (root.currentIdentityAttachment) {
                                 attachments.push(root.currentIdentityAttachment);
                             }
+                            
                             ownersApiHandler.update_owner(
                                 editPopup.ownerData.id,
                                 editPopup.name,
@@ -2005,37 +2835,156 @@ Page {
                             );
                             editPopup.close();
                         }
+                        
+                        // تصميم الخلفية
                         background: Rectangle {
-                            color: parent.enabled ? (parent.hovered ? "#0d47a1" : "#1976d2") : "#bbdefb"
-                            radius: 6
-                            // تأثير الظل
-                            layer.enabled: true
+                            id: editButtonBackground
+                            anchors.fill: parent
+                            color: editSaveButton.hovered && editSaveButton.enabled ? "#1976d2" : "transparent"
+                            radius: 11
+                            border.width: 2
+                            border.color: editSaveButton.enabled ? "#1976d2" : "#90caf9"
+                            
+                            // انتقال سلس عند التغيير
+                            Behavior on color {
+                                ColorAnimation { 
+                                    duration: 300
+                                    easing.type: Easing.OutQuad
+                                }
+                            }
+                            
+                            // تأثير النقر
+                            scale: editSaveButton.pressed ? 0.97 : 1.0
+                            Behavior on scale {
+                                NumberAnimation {
+                                    duration: 150
+                                    easing.type: Easing.OutQuad
+                                }
+                            }
+                            
+                            // تأثير الظل - تحسين جديد
+                            layer.enabled: editSaveButton.enabled
                             layer.effect: DropShadow {
                                 transparentBorder: true
                                 horizontalOffset: 0
-                                verticalOffset: 2
-                                radius: 4.0
-                                samples: 9
-                                color: "#30000000"
+                                verticalOffset: editSaveButton.hovered ? 3 : 1
+                                radius: editSaveButton.hovered ? 6.0 : 3.0
+                                samples: 11
+                                color: "#401976d2"
+                                Behavior on horizontalOffset { NumberAnimation { duration: 300 } }
+                                Behavior on verticalOffset { NumberAnimation { duration: 300 } }
+                                Behavior on radius { NumberAnimation { duration: 300 } }
                             }
                         }
-                        contentItem: RowLayout {
-                            spacing: 8
-                            Text {
-                                text: "\uf0c7" // floppy-disk
-                                font.family: fontAwesome.name
-                                color: "white"
+                        
+                        // محتوى الزر
+                        contentItem: Item {
+                            anchors.fill: parent
+                            
+                            // السهم - متموضع على اليمين (للغة العربية)
+                            Item {
+                                id: editArrowContainer
+                                width: 24
+                                height: 24
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.right: parent.right
+                                anchors.rightMargin: 15
+                                
+                                // رسم السهم باستخدام Canvas
+                                Canvas {
+                                    id: editArrowCanvas
+                                    anchors.fill: parent
+                                    
+                                    onPaint: {
+                                        var ctx = getContext("2d");
+                                        ctx.reset();
+                                        
+                                        // خصائص الخط
+                                        ctx.strokeStyle = editSaveButton.hovered && editSaveButton.enabled ? "white" : (editSaveButton.enabled ? "#1976d2" : "#90caf9");
+                                        ctx.lineWidth = 2;
+                                        ctx.lineCap = "round";
+                                        ctx.lineJoin = "round";
+                                        
+                                        // رسم الخط الأفقي
+                                        ctx.beginPath();
+                                        ctx.moveTo(4.5, 12);
+                                        ctx.lineTo(19.5, 12);
+                                        ctx.stroke();
+                                        
+                                        // رسم السهم العلوي
+                                        ctx.beginPath();
+                                        ctx.moveTo(19.5, 12);
+                                        ctx.lineTo(12.75, 5.25);
+                                        ctx.stroke();
+                                        
+                                        // رسم السهم السفلي
+                                        ctx.beginPath();
+                                        ctx.moveTo(19.5, 12);
+                                        ctx.lineTo(12.75, 18.75);
+                                        ctx.stroke();
+                                    }
+                                    
+                                    // إعادة الرسم عند تغير الألوان
+                                    Timer {
+                                        running: true
+                                        repeat: true
+                                        interval: 100
+                                        onTriggered: editArrowCanvas.requestPaint()
+                                    }
+                                }
+                                
+                                // تأثير حركة السهم - تحسين للحركة
+                                transform: Translate {
+                                    x: editSaveButton.hovered && editSaveButton.enabled ? 5 : 0
+                                    Behavior on x {
+                                        NumberAnimation { 
+                                            duration: 600
+                                            easing.type: Easing.OutBack
+                                        }
+                                    }
+                                }
                             }
+                            
+                            // النص - متموضع على اليسار (للغة العربية)
                             Text {
-                                text: "حفظ التعديلات"
-                                font.pixelSize: 14
-                                color: "white"
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                                Layout.fillWidth: true
+                                text: " حفظ"
+                                color: editSaveButton.hovered && editSaveButton.enabled ? "white" : (editSaveButton.enabled ? "#1976d2" : "#90caf9")
+                                font.pixelSize: 13
+                                font.bold: true
+                                font.letterSpacing: 0.5
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.left: parent.left
+                                anchors.leftMargin: 24
+                                
+                                // انتقال سلس للون
+                                Behavior on color {
+                                    ColorAnimation { duration: 600 }
+                                }
                             }
                         }
+                        
+                        // MouseArea مبسطة بدون تأثير الموجة
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: editSaveButton.enabled ? Qt.PointingHandCursor : Qt.ForbiddenCursor
+                            
+                            onClicked: {
+                                if (editSaveButton.enabled) {
+                                    editSaveButton.clicked();
+                                }
+                            }
+                        }
+                        
+                        // تأثير التعطيل
+                        opacity: enabled ? 1.0 : 0.7
                     }
+
+
+
+
+
+
                 }
             }
         }
@@ -2109,76 +3058,421 @@ Page {
                     Layout.alignment: Qt.AlignHCenter
                     Layout.topMargin: 10
 
-                    // زر الإلغاء
-                    Button {
-                        text: "إلغاء"
-                        Layout.preferredWidth: 120
-                        Layout.preferredHeight: 40
-                        onClicked: deletePopup.close()
-                        background: Rectangle {
-                            color: parent.hovered ? "#e0e0e0" : "#f5f5f5"
-                            radius: 6
-                            border.color: "#bdbdbd"
-                        }
-                        contentItem: RowLayout {
-                            spacing: 8
-                            Text {
-                                text: "\uf00d" // xmark
-                                font.family: fontAwesome.name
-                                color: "#555"
-                            }
-                            Text {
-                                text: "إلغاء"
-                                font.pixelSize: 14
-                                color: "#555"
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                                Layout.fillWidth: true
-                            }
-                        }
-                    }
 
-                    // زر التأكيد
+
+                    // زر الإلغاء في نافذة تأكيد الحذف
                     Button {
-                        text: "نعم، احذف"
-                        Layout.preferredWidth: 120
-                        Layout.preferredHeight: 40
-                        onClicked: {
-                            console.log("محاولة حذف المالك #" + deletePopup.ownerId);
-                            ownersApiHandler.delete_owner(deletePopup.ownerId);
-                            deletePopup.close();
-                        }
+                        id: cancelDeleteButton
+                        text: "إلغاء"
+                        Layout.preferredWidth: 100
+                        Layout.preferredHeight: 30
+                        property bool isPressed: false
+                        onClicked: deletePopup.close()
+                        
                         background: Rectangle {
-                            color: parent.hovered ? "#c62828" : "#d32f2f"
-                            radius: 6
+                            id: cancelDeleteBg
+                            anchors.fill: parent
+                            color: cancelDeleteButton.isPressed ? "#f0f0f0" :
+                                cancelDeleteButton.hovered ? "#f8f8f8" : "#ffffff"
+                            radius: 25
+                            border.width: 1.5
+                            border.color: "#bdbdbd" // لون رمادي بدلاً من الأحمر
+                            
+                            // تأثير التوهج
+                            Rectangle {
+                                id: cancelDeleteGlowEffect
+                                anchors.centerIn: parent
+                                width: parent.width - 4
+                                height: parent.height - 4
+                                radius: parent.radius - 2
+                                color: "transparent"
+                                border.width: 2
+                                border.color: "#e0e0e0" // لون رمادي فاتح بدلاً من الأحمر
+                                opacity: cancelDeleteButton.hovered ? 0.7 : 0
+                                Behavior on opacity {
+                                    NumberAnimation { duration: 200 }
+                                }
+                            }
+                            
                             // تأثير الظل
                             layer.enabled: true
                             layer.effect: DropShadow {
                                 transparentBorder: true
                                 horizontalOffset: 0
-                                verticalOffset: 2
-                                radius: 4.0
-                                samples: 9
+                                verticalOffset: cancelDeleteButton.isPressed ? 1 : 3
+                                radius: cancelDeleteButton.isPressed ? 3.0 : 5.0
+                                samples: 17
                                 color: "#30000000"
                             }
+                            
+                            // تأثير الانتقال للضغط
+                            Behavior on y {
+                                NumberAnimation { duration: 100 }
+                            }
                         }
+                        
+                        // محتوى الزر
                         contentItem: RowLayout {
-                            spacing: 8
-                            Text {
-                                text: "\uf2ed" // trash-can
-                                font.family: fontAwesome.name
-                                color: "white"
+                            spacing: 12
+                            anchors.centerIn: parent
+                            
+                            // أيقونة الإلغاء (X) بداخل دائرة
+                            Rectangle {
+                                id: cancelDeleteIconCircle
+                                width: 20
+                                height: 20
+                                radius: 10
+                                color: "#f5f5f5" // لون رمادي فاتح جداً
+                                
+                                Text {
+                                    text: "\uf00d" // أيقونة X من FontAwesome
+                                    font.family: fontAwesome.name
+                                    font.pixelSize: 10
+                                    color: "#757575" // لون رمادي متوسط
+                                    anchors.centerIn: parent
+                                }
+                                
+                                // تأثير التدوير البسيط عند التحويم
+                                RotationAnimation {
+                                    target: cancelDeleteIconCircle
+                                    from: 0
+                                    to: 360
+                                    duration: 500
+                                    running: cancelDeleteButton.hovered
+                                }
                             }
+                            
+                            // نص الزر
                             Text {
-                                text: "نعم، احذف"
-                                font.pixelSize: 14
-                                color: "white"
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                                Layout.fillWidth: true
+                                text: "إلغاء"
+                                font.pixelSize: 13
+                                font.bold: true
+                                color: "#757575" // لون رمادي متوسط
                             }
+                        }
+                        
+                        // تعامل مع تفاعلات المستخدم
+                        MouseArea {
+                            id: cancelDeleteMouseArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            
+                            // تغيير حالة الضغط
+                            onPressed: {
+                                cancelDeleteButton.isPressed = true
+                                cancelDeleteBg.y = 2
+                            }
+                            
+                            onReleased: {
+                                cancelDeleteButton.isPressed = false
+                                cancelDeleteBg.y = 0
+                            }
+                            
+                            // تمرير الإشارة للزر الأصلي
+                            onClicked: cancelDeleteButton.clicked()
                         }
                     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                    // زر التأكيد
+                    Button {
+                        id: deleteButton
+                        Layout.preferredWidth: 100
+                        Layout.preferredHeight: 30
+
+                        onClicked: {
+                            console.log("محاولة حذف المالك #" + deletePopup.ownerId);
+                            ownersApiHandler.delete_owner(deletePopup.ownerId);
+                            deletePopup.close();
+                        }
+
+                        background: Rectangle {
+                            id: buttonBackground2
+                            anchors.fill: parent
+                            radius: 20
+                            color: deleteButton.pressed ? "#ffcdd2" :
+                                deleteButton.hovered ? "#ffebee" : "white"
+                            border.color: "#e53935"
+                            border.width: 1
+
+                            // انتقال سلس للألوان
+                            Behavior on color {
+                                ColorAnimation { duration: 150 }
+                            }
+
+                            // ظل خفيف لإضافة عمق
+                            layer.enabled: true
+                            layer.effect: DropShadow {
+                                horizontalOffset: 0
+                                verticalOffset: deleteButton.hovered ? 3 : 1
+                                radius: deleteButton.hovered ? 6 : 3
+                                samples: 17
+                                color: "#30000000"
+                                transparentBorder: true
+
+                                Behavior on verticalOffset {
+                                    NumberAnimation { duration: 200 }
+                                }
+                                Behavior on radius {
+                                    NumberAnimation { duration: 200 }
+                                }
+                            }
+
+                            // توهج عند التحويم
+                            Rectangle {
+                                id: glowEffect2
+                                anchors.fill: parent
+                                anchors.margins: -2
+                                radius: parent.radius + 2
+                                color: "transparent"
+                                border.width: 2
+                                border.color: "#ffcdd2"
+                                opacity: deleteButton.hovered ? 0.7 : 0
+                                Behavior on opacity {
+                                    NumberAnimation { duration: 200 }
+                                }
+                            }
+                        }
+
+                        contentItem: RowLayout {
+                            spacing: 10
+                            anchors.centerIn: parent
+
+                            // أيقونة سلة المهملات
+                            Item {
+                                id: iconContainer2
+                                Layout.preferredWidth: 20
+                                Layout.preferredHeight: 20
+                                Layout.alignment: Qt.AlignVCenter
+
+                                // أيقونة سلة مملوءة
+                                Canvas {
+                                    id: deleteIcon
+                                    anchors.fill: parent
+                                    visible: !deleteButton.hovered
+                                    onPaint: {
+                                        var ctx = getContext("2d");
+                                        ctx.reset();
+                                        ctx.strokeStyle = "#e53935";
+                                        ctx.fillStyle = "#e53935";
+                                        ctx.lineWidth = 1.5;
+
+                                        // رسم سلة المهملات
+                                        ctx.beginPath();
+                                        ctx.moveTo(5, 4);
+                                        ctx.lineTo(15, 4);
+                                        ctx.stroke();
+
+                                        ctx.beginPath();
+                                        ctx.moveTo(7, 2);
+                                        ctx.lineTo(13, 2);
+                                        ctx.lineTo(13, 4);
+                                        ctx.lineTo(7, 4);
+                                        ctx.closePath();
+                                        ctx.stroke();
+
+                                        ctx.beginPath();
+                                        ctx.moveTo(6, 4);
+                                        ctx.lineTo(7, 17);
+                                        ctx.lineTo(13, 17);
+                                        ctx.lineTo(14, 4);
+                                        ctx.stroke();
+
+                                        // خطوط داخلية
+                                        ctx.beginPath();
+                                        ctx.moveTo(8.5, 7);
+                                        ctx.lineTo(8.5, 14);
+                                        ctx.moveTo(10, 7);
+                                        ctx.lineTo(10, 14);
+                                        ctx.moveTo(11.5, 7);
+                                        ctx.lineTo(11.5, 14);
+                                        ctx.stroke();
+                                    }
+                                }
+
+                                // أيقونة سلة فارغة (عند التحويم)
+                                Canvas {
+                                    id: deleteEmptyIcon
+                                    anchors.fill: parent
+                                    visible: deleteButton.hovered
+                                    onPaint: {
+                                        var ctx = getContext("2d");
+                                        ctx.reset();
+                                        ctx.strokeStyle = "#e53935";
+                                        ctx.fillStyle = "#e53935";
+                                        ctx.lineWidth = 1.5;
+
+                                        // رسم سلة المهملات الفارغة (نفس المسار الأول أو يمكن تبسيطه)
+                                        ctx.beginPath();
+                                        ctx.moveTo(5, 4);
+                                        ctx.lineTo(15, 4);
+                                        ctx.stroke();
+
+                                        ctx.beginPath();
+                                        ctx.moveTo(7, 2);
+                                        ctx.lineTo(13, 2);
+                                        ctx.lineTo(13, 4);
+                                        ctx.lineTo(7, 4);
+                                        ctx.closePath();
+                                        ctx.stroke();
+
+                                        ctx.beginPath();
+                                        ctx.moveTo(6, 4);
+                                        ctx.lineTo(7, 17);
+                                        ctx.lineTo(13, 17);
+                                        ctx.lineTo(14, 4);
+                                        ctx.stroke();
+                                    }
+                                }
+
+                                // حركة أيقونة التحويم
+                                PropertyAnimation {
+                                    id: iconAnimation
+                                    target: deleteEmptyIcon
+                                    property: "rotation"
+                                    from: -3
+                                    to: 3
+                                    duration: 400
+                                    easing.type: Easing.InOutQuad
+                                    running: deleteButton.hovered
+                                    loops: Animation.Infinite
+                                    alwaysRunToEnd: true
+
+                                    onRunningChanged: {
+                                        if (!running) {
+                                            deleteEmptyIcon.rotation = 0;
+                                        }
+                                    }
+                                }
+                            }
+
+                            // نص الزر
+                            Text {
+                                id: buttonText1
+                                text: "حذف"
+                                color: "#e53935"
+                                font {
+                                    family: fontAwesome.name
+                                    pixelSize: 13
+                                }
+                                Layout.alignment: Qt.AlignVCenter
+
+                                // انتقال اللون
+                                Behavior on color {
+                                    ColorAnimation { duration: 150 }
+                                }
+
+                                // حالة التحويم
+                                states: [
+                                    State {
+                                        name: "hovered"
+                                        when: deleteButton.hovered
+                                        PropertyChanges {
+                                            target: buttonText1
+                                            color: "#d32f2f"
+                                            font.pixelSize: 16
+                                        }
+                                    }
+                                ]
+
+                                transitions: [
+                                    Transition {
+                                        from: ""
+                                        to: "hovered"
+                                        reversible: true
+                                        PropertyAnimation {
+                                            properties: "font.pixelSize,color"
+                                            duration: 150
+                                            easing.type: Easing.OutQuad
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+
+                        // تأثير التصغير عند الضغط
+                        transform: Scale {
+                            id: buttonScale
+                            origin.x: deleteButton.width / 2
+                            origin.y: deleteButton.height / 2
+                            xScale: deleteButton.pressed ? 0.95 : 1.0
+                            yScale: deleteButton.pressed ? 0.95 : 1.0
+
+                            Behavior on xScale {
+                                NumberAnimation {
+                                    duration: 100
+                                    easing.type: Easing.OutQuad
+                                }
+                            }
+
+                            Behavior on yScale {
+                                NumberAnimation {
+                                    duration: 100
+                                    easing.type: Easing.OutQuad
+                                }
+                            }
+                        }
+
+                        // MouseArea: المفتاح لنجاح الزر!
+                        MouseArea {
+                            id: rippleArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+
+                            // أضف هذه السطر:
+                            onClicked: deleteButton.clicked()
+                        }
+                    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                 }
             }
         }
@@ -2242,11 +3536,7 @@ Page {
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                     }
-                    ToolTip {
-                        text: "إغلاق"
-                        visible: parent.hovered
-                        delay: 300
-                    }
+
                 }
 
                     Label {
@@ -2671,11 +3961,6 @@ Page {
                                                         horizontalAlignment: Text.AlignHCenter
                                                         verticalAlignment: Text.AlignVCenter
                                                     }
-                                                    ToolTip {
-                                                        text: "تحميل المرفق"
-                                                        visible: parent.hovered
-                                                        delay: 500
-                                                    }
                                                 }
                                             }
                                         }
@@ -2692,10 +3977,19 @@ Page {
                     Layout.topMargin: 10
                     spacing: 15
 
+
+
+
+
+
+
                     Button {
+                        id: editButton
                         text: "تعديل"
-                        Layout.preferredWidth: 120
+                        Layout.preferredWidth: 80
                         Layout.preferredHeight: 40
+                        
+                        // الحفاظ على الوظائف الأصلية
                         onClicked: {
                             if (selectedOwner) {
                                 editPopup.setOwner(selectedOwner);
@@ -2703,63 +3997,315 @@ Page {
                                 ownerDetailsPopup.close();
                             }
                         }
+                        
+                        // إزالة الخلفية الافتراضية
                         background: Rectangle {
-                            color: parent.hovered ? "#0d5da6" : "#1976d2"
-                            radius: 6
+                            id: buttonBg
+                            color: "transparent"
+                            
+                            // خط مزدوج يظهر عند التحويم (يحاكي ::after في CSS)
+                            Rectangle {
+                                id: underlineEffect
+                                height: parent.height
+                                width: editButton.hovered ? parent.width * 0.9 : 0
+                                anchors.bottom: parent.bottom
+                                anchors.bottomMargin: 5
+                                anchors.left: parent.left
+                                anchors.leftMargin: 5
+                                color: "transparent"
+                                
+                                // خط مزدوج أصفر ذهبي
+                                Rectangle {
+                                    anchors.bottom: parent.bottom
+                                    width: parent.width
+                                    height: 3
+                                    color: "transparent"
+                                    
+                                    // خطان رفيعان متوازيان
+                                    Rectangle {
+                                        anchors.top: parent.top
+                                        width: parent.width
+                                        height: 1
+                                        color: "#1976d2"
+                                    }
+                                    
+                                    Rectangle {
+                                        anchors.bottom: parent.bottom
+                                        width: parent.width
+                                        height: 1
+                                        color: "#1976d2"
+                                    }
+                                }
+                                
+                                // انتقال سلس لعرض الخط المزدوج
+                                Behavior on width {
+                                    NumberAnimation {
+                                        duration: 200
+                                        easing.type: Easing.Linear
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // محتوى الزر
+                        contentItem: Row {
+                            spacing: 2
+                            anchors.centerIn: parent
+                            layoutDirection: Qt.RightToLeft // جعل الترتيب من اليمين لليسار
+                            
+                            // نص الزر (على اليمين)
+                            Text {
+                                id: buttonText2
+                                text: "تعديل"
+                                color: "#121212"
+                                font.pixelSize: 14
+                                font.letterSpacing: editButton.hovered ? 2 : 1
+                                font.bold: true
+                                anchors.verticalCenter: parent.verticalCenter
+                                
+                            }
+                            
+                            // أيقونة السهم (على اليسار)
+                            Item {
+                                id: arrowIcon
+                                width: 15
+                                height: 15
+                                anchors.verticalCenter: parent.verticalCenter
+                                
+                                // رسم السهم "<" باستخدام Text
+                                Text {
+                                    id: leftArrow
+                                    text: "<"
+                                    font.pixelSize: 16
+                                    font.bold: true
+                                    color: "#292D32"
+                                    anchors.centerIn: parent
+                                }
+                                
+                                // انيميشن متواصل للسهم في حالة عدم التحويم
+                                SequentialAnimation {
+                                    running: !editButton.hovered
+                                    loops: Animation.Infinite
+                                    
+                                    NumberAnimation {
+                                        target: arrowIcon
+                                        property: "x"
+                                        from: 0
+                                        to: -5
+                                        duration: 600
+                                        easing.type: Easing.InOutQuad
+                                    }
+                                    
+                                    NumberAnimation {
+                                        target: arrowIcon
+                                        property: "x"
+                                        from: -5
+                                        to: 0
+                                        duration: 600
+                                        easing.type: Easing.InOutQuad
+                                    }
+                                }
+                                
+                                // تأثير الانزلاق عند التحويم
+                                transform: Translate {
+                                    x: editButton.hovered ? -5 : 0
+                                    
+                                    Behavior on x {
+                                        NumberAnimation {
+                                            duration: 200
+                                            easing.type: Easing.OutQuad
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // خصائص تفاعل الزر
+                        opacity: hovered ? 1 : 0.6
+                        
+                        Behavior on opacity {
+                            NumberAnimation { 
+                                duration: 200 
+                                easing.type: Easing.Linear
+                            }
+                        }
+                        
+                        // تأثير مؤشر اليد - تم تصحيح الخطأ
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            
+                            // استخدام دالة onClicked مباشرة دون الحاجة للتعامل مع mouse
+                            onClicked: {
+                                editButton.clicked();
+                            }
+                        }
+                    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                    // زر الإغلاق المطور (مطابق لتصميم زر الإلغاء)
+                    Button {
+                        id: detailsCloseButton
+                        Layout.preferredWidth: 100
+                        Layout.preferredHeight: 30
+                        
+                        // تأثير الضغط
+                        property bool isPressed: false
+                        
+                        // الحفاظ على وظيفة الزر الأصلية
+                        onClicked: ownerDetailsPopup.close()
+                        
+                        background: Rectangle {
+                            id: closeButtonBg
+                            anchors.fill: parent
+                            color: detailsCloseButton.isPressed ? "#f0f0f0" : 
+                                detailsCloseButton.hovered ? "#f8f8f8" : "#ffffff"
+                            radius: 25
+                            border.width: 1.5
+                            border.color: "#e57373"
+                            
+                            // تأثير التوهج
+                            Rectangle {
+                                id: closeGlowEffect
+                                anchors.centerIn: parent
+                                width: parent.width - 4
+                                height: parent.height - 4
+                                radius: parent.radius - 2
+                                color: "transparent"
+                                border.width: 2
+                                border.color: "#ffcdd2"
+                                opacity: detailsCloseButton.hovered ? 0.7 : 0
+                                
+                                Behavior on opacity {
+                                    NumberAnimation { duration: 200 }
+                                }
+                            }
+                            
+                            // تأثير الظل
                             layer.enabled: true
                             layer.effect: DropShadow {
                                 transparentBorder: true
                                 horizontalOffset: 0
-                                verticalOffset: 2
-                                radius: 4.0
-                                samples: 9
+                                verticalOffset: detailsCloseButton.isPressed ? 1 : 3
+                                radius: detailsCloseButton.isPressed ? 3.0 : 5.0
+                                samples: 17
                                 color: "#30000000"
                             }
+                            
+                            // تأثير الانتقال للضغط
+                            Behavior on y {
+                                NumberAnimation { duration: 100 }
+                            }
                         }
+                        
+                        // محتوى الزر
                         contentItem: RowLayout {
-                            spacing: 8
-                            Text {
-                                text: "\uf044"
-                                font.family: fontAwesome.name
-                                color: "white"
+                            spacing: 12
+                            anchors.centerIn: parent
+                            
+                            // أيقونة الإلغاء (X) بداخل دائرة
+                            Rectangle {
+                                id: closeIconCircle
+                                width: 20
+                                height: 20
+                                radius: 10
+                                color: "#fee8e7"
+                                
+                                Text {
+                                    text: "\uf00d" // أيقونة X من FontAwesome
+                                    font.family: fontAwesome.name
+                                    font.pixelSize: 16
+                                    color: "#e53935"
+                                    anchors.centerIn: parent
+                                }
+                                
+                                // تأثير التدوير البسيط عند التحويم
+                                RotationAnimation {
+                                    target: closeIconCircle
+                                    from: 0
+                                    to: 360
+                                    duration: 500
+                                    running: detailsCloseButton.hovered
+                                }
                             }
-                            Text {
-                                text: "تعديل"
-                                font.pixelSize: 14
-                                color: "white"
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                                Layout.fillWidth: true
-                            }
-                        }
-                    }
-                    Button {
-                        text: "إغلاق"
-                        Layout.preferredWidth: 120
-                        Layout.preferredHeight: 40
-                        onClicked: ownerDetailsPopup.close()
-                        background: Rectangle {
-                            color: parent.hovered ? "#e0e0e0" : "#f5f5f5"
-                            radius: 6
-                            border.color: "#bdbdbd"
-                        }
-                        contentItem: RowLayout {
-                            spacing: 8
-                            Text {
-                                text: "\uf00d"
-                                font.family: fontAwesome.name
-                                color: "#555"
-                            }
+                            
+                            // نص الزر
                             Text {
                                 text: "إغلاق"
-                                font.pixelSize: 14
-                                color: "#555"
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                                Layout.fillWidth: true
+                                font.pixelSize: 13
+                                font.bold: true
+                                color: "#d32f2f"
                             }
                         }
+                        
+                        // تعامل مع تفاعلات المستخدم
+                        MouseArea {
+                            id: closeBtnMouseArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            
+                            // تغيير حالة الضغط
+                            onPressed: {
+                                detailsCloseButton.isPressed = true
+                                closeButtonBg.y = 2
+                            }
+                            
+                            onReleased: {
+                                detailsCloseButton.isPressed = false
+                                closeButtonBg.y = 0
+                            }
+                            
+                            // تمرير الإشارة للزر الأصلي
+                            onClicked: detailsCloseButton.clicked()
+                        }
                     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                 }
             }
         }

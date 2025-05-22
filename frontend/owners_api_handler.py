@@ -22,9 +22,10 @@ class OwnersApiHandler(QObject):
         self._owners_loaded = False
         self._isLoading = False
         self._api_base_url = "http://localhost:8000"
+
         # إضافة متغيرات جديدة لنظام الصفحات
         self._current_page = 1
-        self._per_page = 50
+        self._per_page = 25  # تعديل القيمة الافتراضية إلى 25
         self._total_pages = 1
         self._total_items = 0
         self._filter_name = ""
@@ -41,13 +42,13 @@ class OwnersApiHandler(QObject):
     # خصائص جديدة لنظام الصفحات
     def current_page(self):
         return self._current_page
-        
+
     def per_page(self):
         return self._per_page
-        
+
     def total_pages(self):
         return self._total_pages
-        
+
     def total_items(self):
         return self._total_items
 
@@ -88,37 +89,42 @@ class OwnersApiHandler(QObject):
             self._per_page = per_page
             self._current_page = 1  # إعادة الصفحة للبداية
             self.paginationChanged.emit()
-            self.get_filtered_owners(self._filter_name, self._filter_registration_number, self._filter_nationality, 
-                                     self._current_page, self._per_page)
+            # استدعاء دالة تحميل البيانات مع القيمة الجديدة
+            self.get_filtered_owners(self._filter_name, self._filter_registration_number, self._filter_nationality,
+                                   self._current_page, self._per_page)
 
     @Slot(str, str, str, int, int)
-    def get_filtered_owners(self, filter_name="", filter_registration_number="", filter_nationality="", page=1, per_page=50):
+    def get_filtered_owners(self, filter_name="", filter_registration_number="", filter_nationality="", page=1, per_page=None):
         """تحميل الملاك من السيرفر مع دعم التصفية والصفحات"""
         self._isLoading = True
         self._current_page = page
-        self._per_page = per_page
+        
+        # استخدام قيمة per_page من المعاملات إذا توفرت، وإلا استخدام القيمة المخزنة
+        if per_page is not None:
+            self._per_page = per_page
+            
         self._filter_name = filter_name
         self._filter_registration_number = filter_registration_number
         self._filter_nationality = filter_nationality
-        
+
         params = {
             "page": page,
-            "per_page": per_page
+            "per_page": self._per_page
         }
-        
+
         if filter_name:
             params["filter_name"] = filter_name
-            
+
         if filter_registration_number:
             params["filter_registration_number"] = filter_registration_number
-            
+
         if filter_nationality:
             params["filter_nationality"] = filter_nationality
-            
+
         try:
             response = requests.get(f"{self._api_base_url}/owners/", params=params)
             data = response.json()
-            
+
             if isinstance(data, dict):
                 # معالجة الاستجابة الجديدة بتنسيق الصفحات
                 if "data" in data:
@@ -132,10 +138,11 @@ class OwnersApiHandler(QObject):
                 self._owners = data
                 self._total_pages = 1
                 self._total_items = len(data)
-                
+
             self._owners_loaded = True
             self.dataLoaded.emit(self._owners)
             self.paginationChanged.emit()
+
         except Exception as e:
             self.errorOccurred.emit(f"خطأ في جلب الملاك: {str(e)}")
         finally:
@@ -147,17 +154,17 @@ class OwnersApiHandler(QObject):
         if self._current_page < self._total_pages:
             self._current_page += 1
             self.paginationChanged.emit()
-            self.get_filtered_owners(self._filter_name, self._filter_registration_number, self._filter_nationality, 
-                                     self._current_page, self._per_page)
-    
+            self.get_filtered_owners(self._filter_name, self._filter_registration_number, self._filter_nationality,
+                                   self._current_page, self._per_page)
+
     @Slot()
     def previous_page(self):
         """الانتقال للصفحة السابقة"""
         if self._current_page > 1:
             self._current_page -= 1
             self.paginationChanged.emit()
-            self.get_filtered_owners(self._filter_name, self._filter_registration_number, self._filter_nationality, 
-                                     self._current_page, self._per_page)
+            self.get_filtered_owners(self._filter_name, self._filter_registration_number, self._filter_nationality,
+                                   self._current_page, self._per_page)
 
     @Slot(str, str, str, str, str, str, 'QVariant')
     def add_owner(self, name, registration_number, nationality, iban, agent_name, notes, attachments):
@@ -174,8 +181,10 @@ class OwnersApiHandler(QObject):
                 "notes": notes,
                 "attachments": attachments_list,
             }
+
             response = requests.post(f"{self._api_base_url}/owners/", json=payload)
             data = response.json()
+
             if response.ok:
                 self.ownerAdded.emit()
                 # تحديث الكاش
@@ -183,8 +192,8 @@ class OwnersApiHandler(QObject):
                     self._owners.append(data["owner"])
                 else:
                     self._owners_loaded = False
-                    self.get_filtered_owners(self._filter_name, self._filter_registration_number, self._filter_nationality, 
-                                            self._current_page, self._per_page)
+                    self.get_filtered_owners(self._filter_name, self._filter_registration_number, self._filter_nationality,
+                                         self._current_page, self._per_page)
             else:
                 self.errorOccurred.emit(data.get("message", "فشل إضافة مالك"))
         except Exception as e:
@@ -207,8 +216,10 @@ class OwnersApiHandler(QObject):
                 "notes": notes,
                 "attachments": attachments_list,
             }
+
             response = requests.put(f"{self._api_base_url}/owners/{owner_id}", json=payload)
             data = response.json()
+
             if response.ok:
                 self.ownerUpdated.emit()
                 # تحديث العنصر في الكاش
@@ -221,8 +232,8 @@ class OwnersApiHandler(QObject):
                 else:
                     # إذا لم يتم العثور على المالك في الكاش
                     self._owners_loaded = False
-                    self.get_filtered_owners(self._filter_name, self._filter_registration_number, self._filter_nationality, 
-                                           self._current_page, self._per_page)
+                    self.get_filtered_owners(self._filter_name, self._filter_registration_number, self._filter_nationality,
+                                         self._current_page, self._per_page)
             else:
                 self.errorOccurred.emit(data.get("message", "فشل تعديل المالك"))
         except Exception as e:
@@ -238,18 +249,18 @@ class OwnersApiHandler(QObject):
             owner_id_int = int(owner_id)
             response = requests.delete(f"{self._api_base_url}/owners/{owner_id}")
             data = response.json()
+
             if response.ok:
                 # حذف المالك من الكاش
                 self._owners = [o for o in self._owners if o["id"] != owner_id_int]
                 self.ownerDeleted.emit(owner_id_int)
-                
                 # إذا كانت الصفحة الحالية فارغة وهناك صفحات سابقة، انتقل للصفحة السابقة
                 if len(self._owners) == 0 and self._current_page > 1:
                     self.previous_page()
                 elif self._current_page > 1 or self._filter_name or self._filter_registration_number or self._filter_nationality:
                     # تحديث البيانات والصفحات
-                    self.get_filtered_owners(self._filter_name, self._filter_registration_number, self._filter_nationality, 
-                                           self._current_page, self._per_page)
+                    self.get_filtered_owners(self._filter_name, self._filter_registration_number, self._filter_nationality,
+                                         self._current_page, self._per_page)
             else:
                 self.errorOccurred.emit(data.get("message", "فشل حذف المالك"))
         except Exception as e:
